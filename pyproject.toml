@@ -45,7 +45,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "data_gradients.config" = ["*.yaml", "**/*.yaml"]
-"data_gradients" = ["example.ipynb", "requirements.txt"]
+"data_gradients" = ["example.ipynb"]
 "data_gradients.assets" = ["images/*.png", "html/*.html", "css/*.css", "text/*.txt"]
 
 [tool.ruff]
