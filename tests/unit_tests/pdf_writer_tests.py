@@ -3,10 +3,10 @@ import unittest
 
 from data_gradients.assets import assets
 from data_gradients.utils.pdf_writer import (
-    ResultsContainer,
-    Section,
     FeatureSummary,
     PDFWriter,
+    ResultsContainer,
+    Section,
 )
 
 
@@ -27,7 +27,6 @@ class PDFWriterTest(unittest.TestCase):
             self.results_c.add_section(section)
 
     def test_pdf_generation(self):
-
         html_writer = PDFWriter(
             title="Data Gradients",
             subtitle="test 2",

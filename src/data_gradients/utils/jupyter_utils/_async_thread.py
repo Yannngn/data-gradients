@@ -2,6 +2,7 @@
 Tools for working with async tasks
 https://github.com/Kirill888/jupyter-ui-poll/blob/develop/jupyter_ui_poll/_async_thread.py
 """
+
 import asyncio
 import threading
 

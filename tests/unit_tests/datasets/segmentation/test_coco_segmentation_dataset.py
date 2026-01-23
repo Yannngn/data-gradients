@@ -2,8 +2,9 @@ import os
 import unittest
 
 from torch.utils.data import DataLoader
-from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
+
 from data_gradients.datasets.segmentation.coco_segmentation_dataset import COCOSegmentationDataset
+from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 
 
 class COCOSegmentationDatasetTest(unittest.TestCase):
@@ -25,7 +26,6 @@ class COCOSegmentationDatasetTest(unittest.TestCase):
         da.run()
 
     def test_coco_dataset_batch(self):
-
         da = SegmentationAnalysisManager(
             report_title="Testing Data-Gradients NEW",
             train_data=DataLoader(self.train_set, batch_size=1),

@@ -1,11 +1,10 @@
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
 from data_gradients.utils.common import LABELS_PALETTE
 from data_gradients.utils.data_classes import DetectionSample
 from data_gradients.visualize.seaborn_renderer import Hist2DPlotOptions
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
 
 
 @register_feature_extractor()
@@ -21,9 +20,8 @@ class DetectionBoundingBoxSize(AbstractFeatureExtractor):
         self.data = []
 
     def update(self, sample: DetectionSample):
-
         height, width = sample.image.shape[:2]
-        for class_id, bbox_xyxy in zip(sample.class_ids, sample.bboxes_xyxy):
+        for class_id, bbox_xyxy in zip(sample.class_ids, sample.bboxes_xyxy, strict=False):
             class_name = sample.class_names[class_id]
             self.data.append(
                 {
@@ -53,7 +51,10 @@ class DetectionBoundingBoxSize(AbstractFeatureExtractor):
         )
 
         train_description = df[df["split"] == "train"].describe()
-        train_json = {"relative_width": dict(train_description["relative_width"]), "relative_height": dict(train_description["relative_height"])}
+        train_json = {
+            "relative_width": dict(train_description["relative_width"]),
+            "relative_height": dict(train_description["relative_height"]),
+        }
 
         val_description = df[df["split"] == "val"].describe()
         val_json = {"relative_width": dict(val_description["relative_width"]), "relative_height": dict(val_description["relative_height"])}

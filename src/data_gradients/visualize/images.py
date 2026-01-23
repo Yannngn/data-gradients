@@ -1,15 +1,14 @@
 import io
-import matplotlib.pyplot as plt
-from PIL import Image
-from typing import List, Dict, Tuple
 from itertools import zip_longest
 
+import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
 
 
 def stack_split_images_to_fig(
-    image_per_split: Dict[str, np.ndarray],
-    split_figsize: Tuple[float, float],
+    image_per_split: dict[str, np.ndarray],
+    split_figsize: tuple[float, float],
     tight_layout: bool = True,
     stack_vertically: bool = True,
 ) -> plt.Figure:
@@ -25,7 +24,7 @@ def stack_split_images_to_fig(
     else:
         fig, axs = plt.subplots(1, len(image_per_split), figsize=(split_figsize[0] * len(image_per_split), split_figsize[1]))
 
-    for ax, (split, split_images) in zip(axs.flatten(), image_per_split.items()):
+    for ax, (split, split_images) in zip(axs.flatten(), image_per_split.items(), strict=False):
         ax.set_axis_off()
         ax.set_title(split)
         ax.imshow(split_images)
@@ -36,7 +35,7 @@ def stack_split_images_to_fig(
     return fig
 
 
-def combine_images(images: List[np.ndarray], n_cols: int, row_figsize: Tuple[float, float], tight_layout: bool = True) -> np.ndarray:
+def combine_images(images: list[np.ndarray], n_cols: int, row_figsize: tuple[float, float], tight_layout: bool = True) -> np.ndarray:
     """Combine a list of images into a single one using matplotlib.
     :param images:              List of images to combine, RGB
     :param n_cols:              Number of images per row
@@ -68,7 +67,7 @@ def fig_to_array(fig: plt.Figure) -> np.ndarray:
     return np.asarray(image)
 
 
-def combine_images_per_split_per_class(images_per_split_per_class: Dict[str, Dict[str, np.ndarray]], n_cols: int) -> plt.Figure:
+def combine_images_per_split_per_class(images_per_split_per_class: dict[str, dict[str, np.ndarray]], n_cols: int) -> plt.Figure:
     """For each class, combine split images. Then, combine all the resulting images into one plot.
 
     Example:
@@ -91,9 +90,8 @@ def combine_images_per_split_per_class(images_per_split_per_class: Dict[str, Dic
     n_rows = n_classes // n_cols + n_classes % n_cols
 
     # Generate one image per class
-    images: List[np.ndarray] = []
+    images: list[np.ndarray] = []
     for i, (class_name, images_per_split) in enumerate(images_per_split_per_class.items()):
-
         # This plot is for a single class, which is made of at least 1 split
         class_fig, class_axs = plt.subplots(nrows=1, ncols=len(images_per_split), figsize=(10, 6))
         # A hack to make sure class_axs is iterable. When is len(images_per_split) == 1, class_axs is not a list
@@ -101,8 +99,7 @@ def combine_images_per_split_per_class(images_per_split_per_class: Dict[str, Dic
         class_fig.subplots_adjust(top=0.9)
         class_fig.suptitle(f"Class: {class_name}", fontsize=36)
 
-        for (split, split_image), split_ax in zip(images_per_split.items(), class_axs):
-
+        for (split, split_image), split_ax in zip(images_per_split.items(), class_axs, strict=False):
             split_ax.imshow(split_image)
 
             # Write the split name for the first row

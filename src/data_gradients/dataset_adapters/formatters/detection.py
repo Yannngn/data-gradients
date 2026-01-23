@@ -1,14 +1,14 @@
-from typing import Tuple, Callable, List, Optional
+from collections.abc import Callable
 
 import torch
 from torch import Tensor
 
-from data_gradients.dataset_adapters.utils import check_all_integers, check_all_finite
-from data_gradients.dataset_adapters.formatters.base import BatchFormatter
 from data_gradients.dataset_adapters.config.data_config import DetectionDataConfig
-from data_gradients.dataset_adapters.formatters.utils import DatasetFormatError
-from data_gradients.utils.data_classes.data_samples import Image
 from data_gradients.dataset_adapters.exceptions import NonFiniteValuesError
+from data_gradients.dataset_adapters.formatters.base import BatchFormatter
+from data_gradients.dataset_adapters.formatters.utils import DatasetFormatError
+from data_gradients.dataset_adapters.utils import check_all_finite, check_all_integers
+from data_gradients.utils.data_classes.data_samples import Image
 
 
 class UnsupportedDetectionBatchFormatError(DatasetFormatError):
@@ -26,13 +26,13 @@ class DetectionBatchFormatter(BatchFormatter):
     def __init__(self, data_config: DetectionDataConfig):
         self.data_config = data_config
 
-        self.class_ids_to_use: Optional[List[str]] = None  # This will be initialized in `format()`
+        self.class_ids_to_use: list[str] | None = None  # This will be initialized in `format()`
 
         self.xyxy_converter = None
         self.label_first = None
         super().__init__(data_config=data_config)
 
-    def format(self, images: Tensor, labels: Tensor) -> Tuple[List[Image], List[Tensor]]:
+    def format(self, images: Tensor, labels: Tensor) -> tuple[list[Image], list[Tensor]]:
         """Validate batch images and labels format, and ensure that they are in the relevant format for detection.
 
         :param images: Batch of images, in (BS, ...) format
@@ -64,7 +64,6 @@ class DetectionBatchFormatter(BatchFormatter):
 
         # Labels format transformations are only relevant if we have labels
         if labels.numel() > 0:
-
             if self.label_first is None:
                 # If possible, we try to infer the value of `label_first`.
                 first_col, last_col = labels[..., :1], labels[..., -1:]
@@ -135,8 +134,9 @@ class DetectionBatchFormatter(BatchFormatter):
             return annotated_bboxes
 
     @staticmethod
-    def convert_to_label_xyxy(annotated_bboxes: Tensor, image_shape: Tuple[int, int],
-                              xyxy_converter: Callable[[Tensor], Tensor], label_first: bool):
+    def convert_to_label_xyxy(
+        annotated_bboxes: Tensor, image_shape: tuple[int, int], xyxy_converter: Callable[[Tensor], Tensor], label_first: bool
+    ):
         """Convert a tensor of annotated bounding boxes to the 'label_xyxy' format.
 
         :param annotated_bboxes:    Annotated bounding boxes, in (BS, N, 5) format. Could be any format.
@@ -177,7 +177,7 @@ class DetectionBatchFormatter(BatchFormatter):
         return torch.cat([labels, xyxy_bboxes], dim=-1)
 
     @staticmethod
-    def filter_non_relevant_annotations(bboxes: torch.Tensor, class_ids_to_use: List[int]) -> List[torch.Tensor]:
+    def filter_non_relevant_annotations(bboxes: torch.Tensor, class_ids_to_use: list[int]) -> list[torch.Tensor]:
         """Filter the bounding box tensors to keep only the ones with relevant label; retains original tensor shape.
 
         :param bboxes:              Bounding box tensors with shape [batch_size, padding_size, 5], where 5 represents (label, x, y, x, y).

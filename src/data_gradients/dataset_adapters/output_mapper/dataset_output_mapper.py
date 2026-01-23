@@ -1,15 +1,16 @@
-from typing import Callable, Union, Tuple, List, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from typing import Union
 
-import PIL
 import numpy as np
+import PIL
 import torch
 from omegaconf import ListConfig
 
-from data_gradients.dataset_adapters.output_mapper.tensor_extractor import get_tensor_extractor_options
 from data_gradients.dataset_adapters.config.data_config import DataConfig
 from data_gradients.dataset_adapters.config.questions import FixedOptionsQuestion, text_to_yellow
+from data_gradients.dataset_adapters.output_mapper.tensor_extractor import get_tensor_extractor_options
 
-SupportedData = Union[Tuple, List, Mapping, Tuple, List]
+SupportedData = Union[tuple, list, Mapping, tuple, list]
 
 
 class DatasetOutputMapper:
@@ -18,7 +19,7 @@ class DatasetOutputMapper:
     def __init__(self, data_config: DataConfig):
         self.data_config = data_config
 
-    def extract(self, data: SupportedData) -> Tuple[torch.Tensor, torch.Tensor]:
+    def extract(self, data: SupportedData) -> tuple[torch.Tensor, torch.Tensor]:
         """Convert raw batch (coming from dataloader) into a batch of image and a batch of labels.
 
         :param data: Raw batch (coming from dataloader without any modification).
@@ -55,13 +56,13 @@ class DatasetOutputMapper:
             return self.data_config.get_images_extractor()
 
         # We use the heuristic that a tuple of 2 should represent (image, label) in this order
-        if isinstance(data, (Tuple, List)) and len(data) == 2:
+        if isinstance(data, (tuple, list)) and len(data) == 2:
             if isinstance(data[0], (torch.Tensor, np.ndarray, PIL.Image.Image)):
                 self.data_config.images_extractor = "[0]"  # We save it for later use
                 return self.data_config.get_images_extractor()  # This will return a callable
 
         # Otherwise, we ask the user how to map data -> image
-        if isinstance(data, (Tuple, List, Mapping, Tuple, List)):
+        if isinstance(data, (tuple, list, Mapping, tuple, list)):
             description, options = get_tensor_extractor_options(data)
             question = FixedOptionsQuestion(question=f"Which tensor represents your {text_to_yellow('Image(s)')} ?", options=options)
             return self.data_config.get_images_extractor(question=question, hint=description)
@@ -77,13 +78,13 @@ class DatasetOutputMapper:
             return self.data_config.get_labels_extractor()
 
         # We use the heuristic that a tuple of 2 should represent (image, label) in this order
-        if isinstance(data, (Tuple, List)) and len(data) == 2:
+        if isinstance(data, (tuple, list)) and len(data) == 2:
             if isinstance(data[1], (torch.Tensor, np.ndarray, PIL.Image.Image)):
                 self.data_config.labels_extractor = "[1]"  # We save it for later use
                 return self.data_config.get_labels_extractor()  # This will return a callable
 
         # Otherwise, we ask the user how to map data -> labels
-        if isinstance(data, (Tuple, List, Mapping, Tuple, List)):
+        if isinstance(data, (tuple, list, Mapping, tuple, list)):
             description, options = get_tensor_extractor_options(data)
             question = FixedOptionsQuestion(question=f"Which tensor represents your {text_to_yellow('Label(s)')} ?", options=options)
             return self.data_config.get_labels_extractor(question=question, hint=description)
@@ -95,7 +96,7 @@ class DatasetOutputMapper:
         )
 
     @classmethod
-    def _to_torch(cls, data: Union[np.ndarray, PIL.Image.Image, torch.Tensor, str, Sequence[Union[PIL.Image.Image, np.ndarray, str]]]) -> torch.Tensor:
+    def _to_torch(cls, data: np.ndarray | PIL.Image.Image | torch.Tensor | str | Sequence[PIL.Image.Image | np.ndarray | str]) -> torch.Tensor:
         """Convert various input types to a PyTorch tensor.
 
         :param data: Input data to be converted. This can be:

@@ -4,24 +4,24 @@ Generate a list of reports for segmentation datasets.
 The script requires a clear dataset directory structures and will not work in environments not setup the same way.
 """
 
-from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 from super_gradients.training.dataloaders import cityscapes_train, cityscapes_val
 
 from data_gradients.feature_extractors import (
-    SummaryStats,
-    ImagesResolution,
     ImageColorDistribution,
-    ImagesAverageBrightness,
     ImageDuplicates,
+    ImagesAverageBrightness,
+    ImagesResolution,
     SegmentationBoundingBoxArea,
     SegmentationBoundingBoxResolution,
+    SegmentationClassesPerImageCount,
     SegmentationClassFrequency,
     SegmentationClassHeatmap,
-    SegmentationClassesPerImageCount,
     SegmentationComponentsConvexity,
     SegmentationComponentsPerImageCount,
     SegmentationSampleVisualization,
+    SummaryStats,
 )
+from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 
 
 def _get_all_report_features(train_image_dir: str, valid_image_dir: str):
@@ -45,12 +45,13 @@ def _get_all_report_features(train_image_dir: str, valid_image_dir: str):
 
 
 if __name__ == "__main__":
-
     SegmentationAnalysisManager.analyze_coco(
         root_dir="/data/coco",
         year=2017,
         report_title="SEG COCO",
-        feature_extractors=_get_all_report_features(train_image_dir="/data/coco/images/train2017/", valid_image_dir="/data/coco/images/val2017/"),
+        feature_extractors=_get_all_report_features(
+            train_image_dir="/data/coco/images/train2017/", valid_image_dir="/data/coco/images/val2017/"
+        ),
     )
 
     # VOC dataset does not clearly split the train/valid sets so we cannot run duplicate analysis
@@ -68,5 +69,7 @@ if __name__ == "__main__":
         val_data=val_set,
         report_title="SEG Cityspace",
         class_names=trainset.dataset.classes + ["Ignore"],
-        feature_extractors=_get_all_report_features(train_image_dir="/data/coco/images/train2017/", valid_image_dir="/data/coco/images/val2017/"),
+        feature_extractors=_get_all_report_features(
+            train_image_dir="/data/coco/images/train2017/", valid_image_dir="/data/coco/images/val2017/"
+        ),
     ).run()

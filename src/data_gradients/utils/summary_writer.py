@@ -1,12 +1,11 @@
-import os
 import logging
+import os
 from datetime import datetime
-from typing import Optional, List, Dict
 
 import data_gradients
 from data_gradients.assets import assets
 from data_gradients.utils.pdf_writer import PDFWriter, ResultsContainer
-from data_gradients.utils.utils import write_json, copy_files_by_list
+from data_gradients.utils.utils import copy_files_by_list, write_json
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 class SummaryWriter:
     """Manager responsible for logging the Report (e.g. PDF), feature stats, errors and config cache."""
 
-    def __init__(self, report_title: str, report_subtitle: Optional[str] = None, log_dir: Optional[str] = None):
+    def __init__(self, report_title: str, report_subtitle: str | None = None, log_dir: str | None = None):
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         self.run_name = report_title.replace(" ", "_")
 
@@ -35,29 +34,39 @@ class SummaryWriter:
         self._pdf_writer = PDFWriter(title=report_title, subtitle=report_subtitle, html_template=assets.html.doc_template)
 
         # DATA TO SAVE
-        self._metadata = {"__version__": data_gradients.__version__, "report_title": report_title, "report_subtitle": report_subtitle, "timestamp": timestamp}
+        self._metadata = {
+            "__version__": data_gradients.__version__,
+            "report_title": report_title,
+            "report_subtitle": report_subtitle,
+            "timestamp": timestamp,
+        }
         self._data_config_dict = {}
         self._pdf_summary = ResultsContainer()
-        self._features_stats: List[Dict[str, Dict]] = []
-        self._errors: List[Dict[str, List[str]]] = []
+        self._features_stats: list[dict[str, dict]] = []
+        self._errors: list[dict[str, list[str]]] = []
 
     def set_pdf_summary(self, pdf_summary: ResultsContainer):
         self._pdf_summary = pdf_summary
 
-    def set_data_config(self, data_config_dict: Dict):
+    def set_data_config(self, data_config_dict: dict):
         self._data_config_dict = data_config_dict
 
-    def add_feature_stats(self, title: str, stats: Dict[str, Dict]):
+    def add_feature_stats(self, title: str, stats: dict[str, dict]):
         self._features_stats.append({"title": title, "stats": stats})
 
-    def add_error(self, title: str, error: List[str]):
+    def add_error(self, title: str, error: list[str]):
         self._errors.append({"title": title, "error": error})
 
     def write(self):
         """Write all the data accumulated until now."""
 
         # SUMMARY
-        summary_json = {"metadata": self._metadata, "data_config": self._data_config_dict, "errors": self._errors, "features": self._features_stats}
+        summary_json = {
+            "metadata": self._metadata,
+            "data_config": self._data_config_dict,
+            "errors": self._errors,
+            "features": self._features_stats,
+        }
         write_json(path=self.summary_archive_path, json_dict=summary_json)
 
         # ERRORS

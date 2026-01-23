@@ -1,11 +1,11 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Tuple, Sequence, Optional
+from collections.abc import Sequence
 
 import numpy as np
 from torch.utils.data.dataset import Dataset
 
-from data_gradients.datasets.FolderProcessor import ImageLabelFilesIterator, DEFAULT_IMG_EXTENSIONS
+from data_gradients.datasets.FolderProcessor import DEFAULT_IMG_EXTENSIONS, ImageLabelFilesIterator
 from data_gradients.datasets.utils import load_image_rgb
 
 
@@ -19,7 +19,7 @@ class BaseImageLabelDirectoryDataset(Dataset, ABC):
         labels_subdir: str,
         label_extensions: Sequence[str],
         image_extensions: Sequence[str] = DEFAULT_IMG_EXTENSIONS,
-        config_path: Optional[str] = None,
+        config_path: str | None = None,
         verbose: bool = False,
     ):
         """
@@ -47,18 +47,17 @@ class BaseImageLabelDirectoryDataset(Dataset, ABC):
         return load_image_rgb(path)
 
     @abstractmethod
-    def load_labels(self, path: str) -> np.ndarray:
-        ...
+    def load_labels(self, path: str) -> np.ndarray: ...
 
     def __len__(self) -> int:
         return len(self.image_label_tuples)
 
-    def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
+    def __getitem__(self, index: int) -> tuple[np.ndarray, np.ndarray]:
         image_path, labels_path = self.image_label_tuples[index]
         image = self.load_image(path=image_path)
         labels = self.load_labels(path=labels_path)
         return image, labels
 
-    def __iter__(self) -> Tuple[np.ndarray, np.ndarray]:
+    def __iter__(self) -> tuple[np.ndarray, np.ndarray]:
         for i in range(len(self)):
             yield self[i]

@@ -1,6 +1,6 @@
-import os
 import logging
-from typing import List, Tuple, Sequence, Optional
+import os
+from collections.abc import Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class ImageLabelFilesIterator:
         labels_dir: str,
         label_extensions: Sequence[str],
         image_extensions: Sequence[str] = DEFAULT_IMG_EXTENSIONS,
-        config_path: Optional[str] = None,
+        config_path: str | None = None,
         verbose: bool = True,
     ):
         """
@@ -58,13 +58,15 @@ class ImageLabelFilesIterator:
         self.verbose = verbose
         self.image_extensions = self._normalize_extension(image_extensions or DEFAULT_IMG_EXTENSIONS)
         self.label_extensions = self._normalize_extension(label_extensions)
-        self.images_with_labels_files = self.get_image_and_label_file_names(images_dir=images_dir, labels_dir=labels_dir, config_path=config_path)
+        self.images_with_labels_files = self.get_image_and_label_file_names(
+            images_dir=images_dir, labels_dir=labels_dir, config_path=config_path
+        )
 
-    def _normalize_extension(self, extensions: List[str]) -> List[str]:
+    def _normalize_extension(self, extensions: list[str]) -> list[str]:
         """Ensure that all extensions are lower case and don't include the '.'"""
         return [ext.replace(".", "").lower() for ext in extensions]
 
-    def get_image_and_label_file_names(self, images_dir: str, labels_dir: str, config_path: Optional[str]) -> List[Tuple[str, str]]:
+    def get_image_and_label_file_names(self, images_dir: str, labels_dir: str, config_path: str | None) -> list[tuple[str, str]]:
         """Gather all image and label files that are in the directories.
         :param images_dir:      The directory containing the images.
         :param labels_dir:      The directory containing the labels.
@@ -88,13 +90,13 @@ class ImageLabelFilesIterator:
 
         return images_with_labels_files
 
-    def _get_file_names_in_folder(self, images_dir: str, labels_dir: str) -> Tuple[List[str], List[str]]:
+    def _get_file_names_in_folder(self, images_dir: str, labels_dir: str) -> tuple[list[str], list[str]]:
         """Extracts the names of all image and label files in the provided folders."""
         image_files = [os.path.abspath(os.path.join(images_dir, f)) for f in os.listdir(images_dir) if self.is_image(filename=f)]
         label_files = [os.path.abspath(os.path.join(labels_dir, f)) for f in os.listdir(labels_dir) if self.is_label(filename=f)]
         return image_files, label_files
 
-    def _match_file_names(self, all_images_file_names: List[str], all_labels_file_names: List[str]) -> List[Tuple[str, str]]:
+    def _match_file_names(self, all_images_file_names: list[str], all_labels_file_names: list[str]) -> list[tuple[str, str]]:
         """Matches the names of image and label files."""
 
         image_file_base_names = {self.get_filename(file_name): file_name for file_name in all_images_file_names}
@@ -113,8 +115,8 @@ class ImageLabelFilesIterator:
         return [(image_file_base_names[name], label_file_base_names[name]) for name in common_base_names]
 
     def _filter_non_config_files(
-        self, images_with_labels_files: List[Tuple[str, str]], images_dir: str, labels_dir: str, config_path: str
-    ) -> List[Tuple[str, str]]:
+        self, images_with_labels_files: list[tuple[str, str]], images_dir: str, labels_dir: str, config_path: str
+    ) -> list[tuple[str, str]]:
         """Filter all the files that are not listed in the `config_path`.
         :param images_with_labels_files:    List of tuple(<path-to-image>, <path-to-label>).
         :param config_path:                 Path to the config file. This config file should contain the list of file ids to include.
@@ -152,7 +154,7 @@ class ImageLabelFilesIterator:
 
         return images_with_labels_files
 
-    def _config_file(self, config_path: str) -> List[str]:
+    def _config_file(self, config_path: str) -> list[str]:
         """Load the config file that includes the list of supported file ids.
         :param config_path: Path to the config file. Should include file extension.
         :return:    List of relevant file ids. (e.g. ['235', '532', ...], refering to '235.jpg', '532.jpg', ...)
@@ -160,7 +162,7 @@ class ImageLabelFilesIterator:
         if not os.path.exists(config_path):
             raise FileNotFoundError(f"The config file `{config_path}` does not exist.")
 
-        with open(config_path, "r") as f:
+        with open(config_path) as f:
             try:
                 file_ids = f.read().split()
             except Exception as e:
@@ -186,9 +188,9 @@ class ImageLabelFilesIterator:
     def __len__(self) -> int:
         return len(self.images_with_labels_files)
 
-    def __getitem__(self, index) -> List[Tuple[str, str]]:
+    def __getitem__(self, index) -> list[tuple[str, str]]:
         return self.images_with_labels_files[index]
 
-    def __iter__(self) -> List[Tuple[str, str]]:
+    def __iter__(self) -> list[tuple[str, str]]:
         for image_label_file in self.images_with_labels_files:
             yield image_label_file

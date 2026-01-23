@@ -1,14 +1,12 @@
-from typing import Tuple, List
+from logging import getLogger
 
 import torch
 from torch import Tensor
 
-from data_gradients.dataset_adapters.formatters.base import BatchFormatter
-from data_gradients.dataset_adapters.formatters.utils import DatasetFormatError, check_images_shape
-from data_gradients.dataset_adapters.formatters.utils import ensure_channel_first
 from data_gradients.dataset_adapters.config.data_config import ClassificationDataConfig
+from data_gradients.dataset_adapters.formatters.base import BatchFormatter
+from data_gradients.dataset_adapters.formatters.utils import DatasetFormatError, check_images_shape, ensure_channel_first
 from data_gradients.utils.data_classes.data_samples import Image
-from logging import getLogger
 
 logger = getLogger(__name__)
 
@@ -25,11 +23,13 @@ class ClassificationBatchFormatter(BatchFormatter):
         self.data_config = data_config
 
         if data_config.get_class_names_to_use() != data_config.get_class_names():
-            logger.warning("Classification task does NOT support class filtering, yet `class_names_to_use` was set. This will parameter will be ignored.")
+            logger.warning(
+                "Classification task does NOT support class filtering, yet `class_names_to_use` was set. This will parameter will be ignored."
+            )
 
         super().__init__(data_config=data_config)
 
-    def format(self, images: Tensor, labels: Tensor) -> Tuple[List[Image], Tensor]:
+    def format(self, images: Tensor, labels: Tensor) -> tuple[list[Image], Tensor]:
         """Validate batch images and labels format, and ensure that they are in the relevant format for detection.
 
         :param images: Batch of images, in (BS, ...) format

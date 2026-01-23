@@ -1,14 +1,13 @@
-import numpy as np
-from collections import defaultdict
-from typing import Dict, List
 from abc import ABC, abstractmethod
+from collections import defaultdict
 
-from data_gradients.utils.data_classes.data_samples import ImageSample
+import numpy as np
+
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
+from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
+from data_gradients.utils.data_classes.data_samples import ImageSample
+from data_gradients.visualize.images import combine_images, stack_split_images_to_fig
 from data_gradients.visualize.plot_options import FigureRenderer
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
-from data_gradients.visualize.images import stack_split_images_to_fig, combine_images
 
 
 @register_feature_extractor()
@@ -31,7 +30,7 @@ class AbstractSampleVisualization(AbstractFeatureExtractor, ABC):
         self.n_rows = n_rows
         self.n_cols = n_cols
         self.stack_splits_vertically = stack_splits_vertically
-        self.images_per_split: Dict[str, List[np.ndarray]] = defaultdict(list)
+        self.images_per_split: dict[str, list[np.ndarray]] = defaultdict(list)
 
     def update(self, sample: ImageSample):
         split_images = self.images_per_split[sample.split]
@@ -54,7 +53,8 @@ class AbstractSampleVisualization(AbstractFeatureExtractor, ABC):
 
         # Generate a single image per split
         combined_images_per_split = {
-            split: combine_images(split_images, n_cols=self.n_cols, row_figsize=(10, 2.5)) for split, split_images in self.images_per_split.items()
+            split: combine_images(split_images, n_cols=self.n_cols, row_figsize=(10, 2.5))
+            for split, split_images in self.images_per_split.items()
         }
 
         # Generate a single figure

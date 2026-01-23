@@ -1,5 +1,4 @@
 import dataclasses
-from typing import List
 
 import numpy as np
 from jinja2 import Template
@@ -13,12 +12,11 @@ from data_gradients.utils.data_classes.data_samples import ClassificationSample
 
 @dataclasses.dataclass
 class ClassificationBasicStatistics:
-
     num_samples: int = 0
     classes_count: int = 0
     classes_in_use: int = 0
-    classes: List[int] = dataclasses.field(default_factory=list)
-    images_resolutions: List[int] = dataclasses.field(default_factory=list)
+    classes: list[int] = dataclasses.field(default_factory=list)
+    images_resolutions: list[int] = dataclasses.field(default_factory=list)
     med_image_resolution: int = 0
 
 
@@ -39,7 +37,6 @@ class ClassificationSummaryStats(AbstractFeatureExtractor):
         self.template = Template(source=assets.html.basic_info_fe_classification)
 
     def update(self, sample: ClassificationSample):
-
         basic_stats = self.stats[sample.split]
 
         height, width = sample.image.shape[:2]

@@ -1,21 +1,22 @@
+from collections.abc import Mapping
+
 import numpy as np
 import pandas as pd
 import seaborn
-from typing import Union, Optional, Mapping
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
 
 from data_gradients.utils.common import PALETTE_NAME
 from data_gradients.visualize.plot_options import (
-    PlotRenderer,
-    CommonPlotOptions,
-    Hist2DPlotOptions,
     BarPlotOptions,
-    ScatterPlotOptions,
-    ViolinPlotOptions,
-    KDEPlotOptions,
+    CommonPlotOptions,
     FigureRenderer,
     HeatmapOptions,
+    Hist2DPlotOptions,
+    KDEPlotOptions,
+    PlotRenderer,
+    ScatterPlotOptions,
+    ViolinPlotOptions,
 )
 
 __all__ = ["SeabornRenderer"]
@@ -25,7 +26,7 @@ class SeabornRenderer(PlotRenderer):
     def __init__(self, style="whitegrid", palette=PALETTE_NAME):
         seaborn.set_theme(style=style, palette=palette)
 
-    def render(self, data: Union[pd.DataFrame, np.ndarray, plt.Figure], options: CommonPlotOptions) -> Optional[Figure]:
+    def render(self, data: pd.DataFrame | np.ndarray | plt.Figure, options: CommonPlotOptions) -> Figure | None:
         """Plot a graph using seaborn.
 
         :param df:      The dataframe to render. It has to include the fields listed in the options.
@@ -52,7 +53,6 @@ class SeabornRenderer(PlotRenderer):
         raise ValueError(f"Unknown options type: {type(options)}")
 
     def _render_scatterplot(self, df, options: ScatterPlotOptions) -> plt.Figure:
-
         if options.individual_plots_key is None:
             dfs = [df]
             n_rows = 1
@@ -72,7 +72,7 @@ class SeabornRenderer(PlotRenderer):
         else:
             axs = axs.reshape(-1)
 
-        for df, ax_i in zip(dfs, axs):
+        for df, ax_i in zip(dfs, axs, strict=False):
             scatterplot_args = dict(
                 data=df,
                 x=options.x_label_key,
@@ -113,7 +113,6 @@ class SeabornRenderer(PlotRenderer):
         return fig
 
     def _render_histplot(self, df, options: Hist2DPlotOptions) -> plt.Figure:
-
         if options.individual_plots_key is None:
             dfs = [df]
             n_rows = 1
@@ -133,7 +132,7 @@ class SeabornRenderer(PlotRenderer):
         else:
             axs = axs.reshape(-1)
 
-        for df, ax_i in zip(dfs, axs):
+        for df, ax_i in zip(dfs, axs, strict=False):
             histplot_args = dict(data=df, x=options.x_label_key, kde=options.kde, stat=options.stat, ax=ax_i)
 
             if options.y_label_key is not None:
@@ -185,7 +184,6 @@ class SeabornRenderer(PlotRenderer):
         return fig
 
     def _render_kdeplot(self, df, options: KDEPlotOptions) -> plt.Figure:
-
         if options.individual_plots_key is None:
             dfs = [df]
             n_rows = 1
@@ -205,7 +203,7 @@ class SeabornRenderer(PlotRenderer):
         else:
             axs = axs.reshape(-1)
 
-        for df, ax_i in zip(dfs, axs):
+        for df, ax_i in zip(dfs, axs, strict=False):
             plot_args = dict(
                 data=df,
                 x=options.x_label_key,
@@ -375,7 +373,6 @@ class SeabornRenderer(PlotRenderer):
         return fig
 
     def _render_heatmap(self, data: Mapping[str, np.ndarray], options: HeatmapOptions) -> plt.Figure:
-
         fig, axes = plt.subplots(nrows=1, ncols=len(data), figsize=options.figsize, tight_layout=options.tight_layout)
         fig.subplots_adjust()
 
@@ -432,13 +429,13 @@ class SeabornRenderer(PlotRenderer):
                 for p in ax.patches:
                     _x = p.get_x() + p.get_width() / 2
                     _y = p.get_y() + p.get_height() + (p.get_height() * 0.01)
-                    value = "{:.1f}".format(p.get_height())
+                    value = f"{p.get_height():.1f}"
                     ax.text(_x, _y, value, ha="center")
             elif orient == "h":
                 for p in ax.patches:
                     _x = p.get_x() + p.get_width() + float(space)
                     _y = p.get_y() + p.get_height() - (p.get_height() * 0.5)
-                    value = "{:.1f}".format(p.get_width())
+                    value = f"{p.get_width():.1f}"
                     ax.text(_x, _y, value, ha="left")
 
         if isinstance(axs, np.ndarray):

@@ -1,6 +1,6 @@
-from abc import ABC, abstractmethod
 import dataclasses
-from typing import Mapping, Optional, Tuple, Union, List
+from abc import ABC, abstractmethod
+from collections.abc import Mapping
 
 import pandas as pd
 
@@ -34,27 +34,27 @@ class BarPlotOptions(CommonPlotOptions):
 
     x_label_key: str
     x_label_name: str
-    y_label_key: Optional[str]
+    y_label_key: str | None
     y_label_name: str
 
-    order_key: Optional[str] = None
+    order_key: str | None = None
 
     width: float = 0.8
-    bins: Optional[int] = None
+    bins: int | None = None
 
-    x_ticks_rotation: Optional[int] = 45
-    y_ticks_rotation: Optional[int] = None
+    x_ticks_rotation: int | None = 45
+    y_ticks_rotation: int | None = None
 
-    labels_key: Optional[str] = None
-    labels_name: Optional[str] = None
-    labels_palette: Optional[Mapping] = None
+    labels_key: str | None = None
+    labels_name: str | None = None
+    labels_palette: Mapping | None = None
 
     show_values: bool = False
 
     orient: str = "h"
-    log_scale: Union[bool, str] = "auto"
+    log_scale: bool | str = "auto"
     tight_layout: bool = False
-    figsize: Optional[Tuple[int, int]] = (10, 6)
+    figsize: tuple[int, int] | None = (10, 6)
 
 
 @dataclasses.dataclass
@@ -87,24 +87,24 @@ class ViolinPlotOptions(CommonPlotOptions):
     y_label_key: str
     y_label_name: str
 
-    order_key: Optional[str] = None
+    order_key: str | None = None
 
-    x_lim: Tuple[float, float] = None
+    x_lim: tuple[float, float] = None
 
     individual_plots_key: str = None
     individual_plots_max_cols: int = None
 
-    labels_key: Optional[str] = None
-    labels_name: Optional[str] = None
-    labels_palette: Optional[Mapping] = None
+    labels_key: str | None = None
+    labels_name: str | None = None
+    labels_palette: Mapping | None = None
 
-    bandwidth: Union[float, str] = None
+    bandwidth: float | str = None
 
     tight_layout: bool = False
-    figsize: Optional[Tuple[int, int]] = (10, 6)
+    figsize: tuple[int, int] | None = (10, 6)
 
-    x_ticks_rotation: Optional[int] = 45
-    y_ticks_rotation: Optional[int] = None
+    x_ticks_rotation: int | None = 45
+    y_ticks_rotation: int | None = None
 
 
 @dataclasses.dataclass
@@ -134,32 +134,32 @@ class Hist2DPlotOptions(CommonPlotOptions):
     x_label_key: str
     x_label_name: str
 
-    y_label_key: Optional[str] = None
-    y_label_name: Optional[str] = None
+    y_label_key: str | None = None
+    y_label_name: str | None = None
 
-    weights: Optional[str] = None
+    weights: str | None = None
 
-    x_lim: Tuple[float, float] = None
-    y_lim: Tuple[float, float] = None
+    x_lim: tuple[float, float] = None
+    y_lim: tuple[float, float] = None
 
-    bins: Optional[int] = None
+    bins: int | None = None
     kde: bool = False
     stat: str = "count"
 
     individual_plots_key: str = None
     individual_plots_max_cols: int = None
 
-    labels_key: Optional[str] = None
-    labels_name: Optional[str] = None
-    labels_palette: Optional[Mapping] = None
+    labels_key: str | None = None
+    labels_name: str | None = None
+    labels_palette: Mapping | None = None
 
     tight_layout: bool = False
-    figsize: Optional[Tuple[int, int]] = (10, 6)
+    figsize: tuple[int, int] | None = (10, 6)
 
-    x_ticks_rotation: Optional[int] = 45
-    y_ticks_rotation: Optional[int] = None
+    x_ticks_rotation: int | None = 45
+    y_ticks_rotation: int | None = None
 
-    sharey: Union[bool, str] = False
+    sharey: bool | str = False
 
 
 @dataclasses.dataclass
@@ -191,34 +191,34 @@ class KDEPlotOptions(CommonPlotOptions):
     x_label_key: str
     x_label_name: str
 
-    y_label_key: Optional[str] = None
-    y_label_name: Optional[str] = None
+    y_label_key: str | None = None
+    y_label_name: str | None = None
 
-    weights: Optional[str] = None
+    weights: str | None = None
 
-    x_lim: Tuple[float, float] = None
-    y_lim: Tuple[float, float] = None
+    x_lim: tuple[float, float] = None
+    y_lim: tuple[float, float] = None
 
     individual_plots_key: str = None
     individual_plots_max_cols: int = None
 
-    labels_key: Optional[str] = None
-    labels_name: Optional[str] = None
-    labels_palette: Optional[Mapping] = None
+    labels_key: str | None = None
+    labels_name: str | None = None
+    labels_palette: Mapping | None = None
 
     tight_layout: bool = False
-    figsize: Optional[Tuple[int, int]] = (10, 6)
+    figsize: tuple[int, int] | None = (10, 6)
 
     common_norm: bool = True
-    bw_adjust: Optional[float] = None
+    bw_adjust: float | None = None
 
-    x_ticks_rotation: Optional[int] = 45
-    y_ticks_rotation: Optional[int] = None
+    x_ticks_rotation: int | None = 45
+    y_ticks_rotation: int | None = None
 
     fill: bool = False
     alpha: float = 0.1
 
-    sharey: Union[bool, str] = False
+    sharey: bool | str = False
 
 
 @dataclasses.dataclass
@@ -250,38 +250,38 @@ class ScatterPlotOptions(CommonPlotOptions):
     y_label_key: str
     y_label_name: str
 
-    x_lim: Tuple[float, float] = None
-    y_lim: Tuple[float, float] = None
+    x_lim: tuple[float, float] = None
+    y_lim: tuple[float, float] = None
 
     individual_plots_key: str = None
     individual_plots_max_cols: int = None
 
-    labels_key: Optional[str] = None
-    labels_name: Optional[str] = None
-    labels_palette: Optional[Mapping] = None
+    labels_key: str | None = None
+    labels_name: str | None = None
+    labels_palette: Mapping | None = None
 
     tight_layout: bool = False
-    figsize: Optional[Tuple[int, int]] = (10, 6)
+    figsize: tuple[int, int] | None = (10, 6)
 
-    x_ticks_rotation: Optional[int] = 45
-    y_ticks_rotation: Optional[int] = None
+    x_ticks_rotation: int | None = 45
+    y_ticks_rotation: int | None = None
 
-    style_key: Optional[str] = None
-    sharey: Union[bool, str] = False
+    style_key: str | None = None
+    sharey: bool | str = False
 
 
 @dataclasses.dataclass
 class HeatmapOptions(CommonPlotOptions):
     x_label_name: str
     y_label_name: str
-    xticklabels: Union[bool, List[str]]
-    yticklabels: Union[bool, List[str]]
+    xticklabels: bool | list[str]
+    yticklabels: bool | list[str]
     cbar: bool
     cmap: str
     annot: bool
     square: bool
     tight_layout: bool = False
-    figsize: Optional[Tuple[int, int]] = (10, 6)
+    figsize: tuple[int, int] | None = (10, 6)
     fmt: str = None
     x_ticks_rotation: int = 0
     y_ticks_rotation: int = 0
@@ -296,5 +296,4 @@ class FigureRenderer(CommonPlotOptions):
 
 class PlotRenderer(ABC):
     @abstractmethod
-    def render(self, df: pd.DataFrame, options: CommonPlotOptions):
-        ...
+    def render(self, df: pd.DataFrame, options: CommonPlotOptions): ...

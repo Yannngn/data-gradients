@@ -1,6 +1,6 @@
 import inspect
-import re
 import os
+import re
 
 from data_gradients.datasets import detection as detection_datasets
 from data_gradients.datasets import segmentation as segmentation_datasets
@@ -34,7 +34,7 @@ dataset_descriptions = ""
 table_of_contents = "## List of Datasets\n\n"
 
 # Iterate over categories and corresponding modules
-for category, module in zip(categories, modules):
+for category, module in zip(categories, modules, strict=False):
     # Add category to table of contents
     table_of_contents += f"- {section_name_to_md_link(category)}\n"
 
@@ -49,7 +49,7 @@ for category, module in zip(categories, modules):
         dataset_doc = remove_first_indentation(dataset_doc)
 
         # Create dataset title and add to table of contents
-        dataset_title = f"{i+1}. {class_name}"
+        dataset_title = f"{i + 1}. {class_name}"
         table_of_contents += f"    - {section_name_to_md_link(dataset_title)}\n"
 
         # Append dataset details to the markdown content

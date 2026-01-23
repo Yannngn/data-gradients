@@ -1,16 +1,16 @@
-from typing import Tuple, Dict
-import numpy as np
-from collections import defaultdict
 from abc import ABC, abstractmethod
+from collections import defaultdict
 
+import numpy as np
+
+from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
 from data_gradients.utils.data_classes import SegmentationSample
-from data_gradients.visualize.seaborn_renderer import FigureRenderer
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature, AbstractFeatureExtractor
 from data_gradients.visualize.images import combine_images_per_split_per_class
+from data_gradients.visualize.seaborn_renderer import FigureRenderer
 
 
 class BaseClassHeatmap(AbstractFeatureExtractor, ABC):
-    def __init__(self, n_rows: int = 12, n_cols: int = 2, heatmap_shape: Tuple[int, int] = (200, 200)):
+    def __init__(self, n_rows: int = 12, n_cols: int = 2, heatmap_shape: tuple[int, int] = (200, 200)):
         """
         :param n_rows:          How many rows per split.
         :param n_cols:          How many columns per split.
@@ -20,12 +20,11 @@ class BaseClassHeatmap(AbstractFeatureExtractor, ABC):
         self.n_rows = n_rows
         self.n_cols = n_cols
 
-        self.class_names: Dict[int, str] = {}
-        self.heatmaps_per_split: Dict[str, np.ndarray] = {}  # Each heatmap should be of shape (n_class, heatmap_shape[0], heatmap_shape[1])
+        self.class_names: dict[int, str] = {}
+        self.heatmaps_per_split: dict[str, np.ndarray] = {}  # Each heatmap should be of shape (n_class, heatmap_shape[0], heatmap_shape[1])
 
     @abstractmethod
-    def update(self, sample: SegmentationSample):
-        ...
+    def update(self, sample: SegmentationSample): ...
 
     def aggregate(self) -> Feature:
         # Select top k heatmaps by appearance
@@ -55,13 +54,10 @@ class BaseClassHeatmap(AbstractFeatureExtractor, ABC):
         return feature
 
     @abstractmethod
-    def _generate_title(self) -> str:
-        ...
+    def _generate_title(self) -> str: ...
 
     @abstractmethod
-    def _generate_description(self) -> str:
-        ...
+    def _generate_description(self) -> str: ...
 
     @abstractmethod
-    def _generate_notice(self) -> str:
-        ...
+    def _generate_notice(self) -> str: ...

@@ -1,11 +1,11 @@
-import numpy as np
 import logging
-from typing import Sequence, Optional
+from collections.abc import Sequence
 from xml.etree import ElementTree
+
+import numpy as np
 
 from data_gradients.datasets.base_dataset import BaseImageLabelDirectoryDataset
 from data_gradients.datasets.FolderProcessor import DEFAULT_IMG_EXTENSIONS
-
 
 logger = logging.getLogger(__name__)
 
@@ -137,7 +137,7 @@ class VOCFormatDetectionDataset(BaseImageLabelDirectoryDataset):
         images_subdir: str,
         labels_subdir: str,
         class_names: Sequence[str],
-        config_path: Optional[str] = None,
+        config_path: str | None = None,
         verbose: bool = False,
         image_extensions: Sequence[str] = DEFAULT_IMG_EXTENSIONS,
         label_extensions: Sequence[str] = ("xml",),
@@ -165,7 +165,6 @@ class VOCFormatDetectionDataset(BaseImageLabelDirectoryDataset):
         self.class_names = class_names
 
     def load_labels(self, path: str) -> np.ndarray:
-
         with open(path, encoding="utf-8") as f:
             xml_parser = ElementTree.parse(f).getroot()
 

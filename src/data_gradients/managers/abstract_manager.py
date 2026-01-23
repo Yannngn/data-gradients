@@ -1,22 +1,21 @@
-import os
 import abc
 import logging
+import os
 import traceback
-from typing import List, Dict, Optional, Iterable, Sized
-from itertools import zip_longest
+from collections.abc import Iterable, Sized
 from logging import getLogger
 
 from tqdm import tqdm
 
 from data_gradients.dataset_adapters.config.typing_utils import SupportedDataType
+from data_gradients.dataset_adapters.exceptions import NonFiniteValuesError
 from data_gradients.feature_extractors import AbstractFeatureExtractor
 from data_gradients.feature_extractors.common import SummaryStats
+from data_gradients.sample_preprocessor.base_sample_preprocessor import AbstractSamplePreprocessor
+from data_gradients.utils.pdf_writer import FeatureSummary, ResultsContainer, Section
+from data_gradients.utils.summary_writer import SummaryWriter
 from data_gradients.utils.utils import print_in_box
 from data_gradients.visualize.seaborn_renderer import SeabornRenderer
-from data_gradients.utils.pdf_writer import ResultsContainer, Section, FeatureSummary
-from data_gradients.utils.summary_writer import SummaryWriter
-from data_gradients.sample_preprocessor.base_sample_preprocessor import AbstractSamplePreprocessor
-from data_gradients.dataset_adapters.exceptions import NonFiniteValuesError
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,15 +28,15 @@ class AnalysisManagerAbstract(abc.ABC):
     """
 
     def __init__(
-            self,
-            *,
-            train_data: Iterable[SupportedDataType],
-            val_data: Optional[Iterable[SupportedDataType]],
-            sample_preprocessor: AbstractSamplePreprocessor,
-            summary_writer: SummaryWriter,
-            grouped_feature_extractors: Dict[str, List[AbstractFeatureExtractor]],
-            batches_early_stop: Optional[int] = None,
-            remove_plots_after_report: Optional[bool] = True,
+        self,
+        *,
+        train_data: Iterable[SupportedDataType],
+        val_data: Iterable[SupportedDataType] | None,
+        sample_preprocessor: AbstractSamplePreprocessor,
+        summary_writer: SummaryWriter,
+        grouped_feature_extractors: dict[str, list[AbstractFeatureExtractor]],
+        batches_early_stop: int | None = None,
+        remove_plots_after_report: bool | None = True,
     ):
         """
         :param train_data:                  Iterable object contains images and labels of the training dataset
@@ -54,7 +53,8 @@ class AnalysisManagerAbstract(abc.ABC):
         # DATA
         if batches_early_stop:
             logger.info(
-                f"Running with `batches_early_stop={batches_early_stop}`: Only the first {batches_early_stop} batches will be analyzed.")
+                f"Running with `batches_early_stop={batches_early_stop}`: Only the first {batches_early_stop} batches will be analyzed."
+            )
         self.batches_early_stop = batches_early_stop
 
         val_data = val_data or iter([])
@@ -191,8 +191,7 @@ class AnalysisManagerAbstract(abc.ABC):
         if self.summary_writer._errors:
             errors_section = Section("Errors")
             for error in self.summary_writer._errors:
-                errors_section.add_feature(
-                    FeatureSummary(name=error["title"], description=error["error"], image_path=None))
+                errors_section.add_feature(FeatureSummary(name=error["title"], description=error["error"], image_path=None))
             summary.add_section(errors_section)
 
         for section_name, feature_extractors in tqdm(self.grouped_feature_extractors.items(), desc="Summarizing... "):
@@ -208,7 +207,9 @@ class AnalysisManagerAbstract(abc.ABC):
                     feature, f = None, None
                     error_description = traceback.format_exception(type(e), e, e.__traceback__)
                     feature_json = {"error": error_description}
-                    feature_error = f"Feature extraction error. Check out the log file for more details:<br/>" f"<em>{self.summary_writer.errors_path}</em>"
+                    feature_error = (
+                        f"Feature extraction error. Check out the log file for more details:<br/><em>{self.summary_writer.errors_path}</em>"
+                    )
                     self.summary_writer.add_error(title=feature_name, error=error_description)
                     logger.error(f"Feature extractor {feature_extractor} error: {error_description}")
 
@@ -224,8 +225,7 @@ class AnalysisManagerAbstract(abc.ABC):
 
                 if feature_error:
                     warning = feature_error
-                elif isinstance(feature_extractor, SummaryStats) and (
-                        interrupted or (self.batches_early_stop and self._stopped_early)):
+                elif isinstance(feature_extractor, SummaryStats) and (interrupted or (self.batches_early_stop and self._stopped_early)):
                     warning = self._create_samples_iterated_warning()
                 else:
                     warning = feature.warning
@@ -275,14 +275,14 @@ class AnalysisManagerAbstract(abc.ABC):
 
     def print_summary(self):
         print()
-        print(f'{"=" * 100}')
+        print(f"{'=' * 100}")
         print("Your dataset evaluation has been completed!")
         print()
-        print(f'{"-" * 100}')
+        print(f"{'-' * 100}")
         print("Training Configuration...")
         print(self.data_config.get_caching_info())
         print()
-        print(f'{"-" * 100}')
+        print(f"{'-' * 100}")
         print("Report Location:")
         print("    - Temporary Folder (will be overwritten next run):")
         print(f"        └─ {self.summary_writer.log_dir}")
@@ -293,7 +293,7 @@ class AnalysisManagerAbstract(abc.ABC):
         print(f"                ├─ {os.path.basename(self.summary_writer.report_archive_path)}")
         print(f"                └─ {os.path.basename(self.summary_writer.summary_archive_path)}")
         print("")
-        print(f'{"=" * 100}')
+        print(f"{'=' * 100}")
         print("Seen a glitch? Have a suggestion? Visit https://github.com/Deci-AI/data-gradients !")
 
     @property

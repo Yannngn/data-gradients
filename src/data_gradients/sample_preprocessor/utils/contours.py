@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict, Sequence
+from collections.abc import Sequence
 
 import cv2
 import numpy as np
@@ -6,7 +6,7 @@ import numpy as np
 from data_gradients.utils.data_classes.contour import Contour
 
 
-def get_contours(label: np.ndarray, class_ids: Sequence[int]) -> List[list]:
+def get_contours(label: np.ndarray, class_ids: Sequence[int]) -> list[list]:
     """
     Find contours in each class-channel individually, using opencv findContours method
     :param label:       Categorical representation of mask, of shape [H, W]
@@ -21,7 +21,6 @@ def get_contours(label: np.ndarray, class_ids: Sequence[int]) -> List[list]:
     all_onehot_contour = []
 
     for class_channel in class_ids:
-
         onehot = (label == class_channel).astype(np.uint8)  # Boolean mask of shape [H, W]
         if np.max(onehot) == 0:
             continue
@@ -42,7 +41,7 @@ def get_bbox_area(contour):
     return w * h
 
 
-def get_valid_contours(contours: Tuple, class_id: int) -> List:
+def get_valid_contours(contours: tuple, class_id: int) -> list:
     """
     Contours sometimes are buggy, as for 2-points-contour, a stragith line, etc.
     We'll remove the by the valid - criteria (temporary) - minimal size of (3 ^ 2) pixels
@@ -71,7 +70,7 @@ def get_valid_contours(contours: Tuple, class_id: int) -> List:
     return valid_contours
 
 
-def get_num_contours(contours: List[np.array]) -> int:
+def get_num_contours(contours: list[np.array]) -> int:
     return len(contours)
 
 
@@ -85,7 +84,7 @@ def get_contour_area(contour: np.array) -> float:
     return float(area)
 
 
-def get_contour_center_of_mass(contour: np.array) -> Tuple[int, int]:
+def get_contour_center_of_mass(contour: np.array) -> tuple[int, int]:
     """
     Find contours center of mass by its moments
     :param contour: List of points
@@ -135,7 +134,7 @@ def get_aspect_ratio_of_bounding_rect(contour: np.array) -> float:
     return rect[1][0] / rect[1][1]
 
 
-def get_extreme_points(contour: np.array) -> Tuple[Dict, int, int]:
+def get_extreme_points(contour: np.array) -> tuple[dict, int, int]:
     extreme_points = dict()
     extreme_points["leftmost"] = tuple(contour[contour[:, :, 0].argmin()][0])
     extreme_points["rightmost"] = tuple(contour[contour[:, :, 0].argmax()][0])

@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numpy as np
 import torch
 
@@ -39,8 +37,7 @@ XYXY_CONVERTERS = {
 }
 
 
-class XYXYConvertError(Exception):
-    ...
+class XYXYConvertError(Exception): ...
 
 
 class XYXYConverter:
@@ -60,7 +57,7 @@ class XYXYConverter:
         return {info["description"]: key for key, info in XYXY_CONVERTERS.items()}
 
 
-def scale_bboxes(old_shape: Tuple[float, float], new_shape: Tuple[float, float], bboxes_xyxy: np.ndarray):
+def scale_bboxes(old_shape: tuple[float, float], new_shape: tuple[float, float], bboxes_xyxy: np.ndarray):
     """Scale bounding boxes to a new shape.
     :param old_shape:   Old shape of the image, (H, W) format
     :param new_shape:   New shape of the image, (H, W) format

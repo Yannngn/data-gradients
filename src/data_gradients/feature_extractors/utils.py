@@ -44,7 +44,9 @@ class MostImportantValuesSelector:
         if self.prioritization_mode == "train_val_diff":
             # `train_val_diff` only defined when working with 2 sets.
             if len(df_pivot.columns) != 2:
-                raise ValueError(f'`prioritization_mode"train_val_diff"` is only supported when working with 2 sets. Found {len(df_pivot.columns)}.')
+                raise ValueError(
+                    f'`prioritization_mode"train_val_diff"` is only supported when working with 2 sets. Found {len(df_pivot.columns)}.'
+                )
             delta = (df_pivot.iloc[:, 0] - df_pivot.iloc[:, 1]).abs()
             average = (df_pivot.iloc[:, 0] + df_pivot.iloc[:, 1]).abs() / 2
             df_pivot["metric"] = delta / (average + 1e-6)

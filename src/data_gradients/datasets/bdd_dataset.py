@@ -56,7 +56,6 @@ class BDDDataset(Dataset):
         self.samples_fn = []
         for f in files_list:
             if f[-3:] == "jpg":
-
                 self.samples_fn.append(
                     [
                         os.path.join(data_location, f),

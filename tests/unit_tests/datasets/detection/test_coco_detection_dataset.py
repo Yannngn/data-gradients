@@ -3,8 +3,8 @@ import unittest
 
 from torch.utils.data import DataLoader
 
-from data_gradients.managers.detection_manager import DetectionAnalysisManager
 from data_gradients.datasets.detection.coco_detection_dataset import COCODetectionDataset
+from data_gradients.managers.detection_manager import DetectionAnalysisManager
 
 
 class COCOSegmentationDatasetTest(unittest.TestCase):
@@ -26,7 +26,6 @@ class COCOSegmentationDatasetTest(unittest.TestCase):
         da.run()
 
     def test_coco_dataset_batch(self):
-
         da = DetectionAnalysisManager(
             report_title="COCO 2017 Detection Report Batch",
             train_data=DataLoader(self.train_set, batch_size=1),

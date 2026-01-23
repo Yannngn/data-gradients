@@ -1,10 +1,10 @@
-from typing import Tuple, Optional
 import cv2
 import numpy as np
+
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.utils.image_processing import resize_in_chunks
-from data_gradients.utils.data_classes import SegmentationSample
 from data_gradients.feature_extractors.common.heatmap import BaseClassHeatmap
+from data_gradients.utils.data_classes import SegmentationSample
+from data_gradients.utils.image_processing import resize_in_chunks
 from data_gradients.utils.segmentation import mask_to_onehot
 
 
@@ -17,7 +17,7 @@ class SegmentationClassHeatmap(BaseClassHeatmap):
     biases in object placement or dataset collection.
     """
 
-    def __init__(self, n_rows: int = 12, n_cols: int = 2, heatmap_shape: Tuple[int, int] = (200, 200)):
+    def __init__(self, n_rows: int = 12, n_cols: int = 2, heatmap_shape: tuple[int, int] = (200, 200)):
         """
         :param n_rows:          How many rows per split.
         :param n_cols:          How many columns per split.
@@ -26,7 +26,6 @@ class SegmentationClassHeatmap(BaseClassHeatmap):
         super().__init__(n_rows=n_rows, n_cols=n_cols, heatmap_shape=heatmap_shape)
 
     def update(self, sample: SegmentationSample):
-
         if not self.class_names:
             self.class_names = sample.class_names
 
@@ -56,7 +55,7 @@ class SegmentationClassHeatmap(BaseClassHeatmap):
             "This is done to focus on localization of objects in the scene (e.g. top-right, center, ...) independently of the original image sizes."
         )
 
-    def _generate_notice(self) -> Optional[str]:
+    def _generate_notice(self) -> str | None:
         if len(self.class_names) > self.n_cols * self.n_rows:
             return (
                 f"Only the {self.n_cols * self.n_rows} classes with highest density are shown.<br/>"

@@ -3,10 +3,10 @@ import unittest
 import numpy as np
 import pandas as pd
 
+from data_gradients.dataset_adapters.formatters.utils import Uint8ImageFormat
 from data_gradients.feature_extractors.object_detection.bounding_boxes_area import DetectionBoundingBoxArea
 from data_gradients.utils.data_classes.data_samples import DetectionSample, Image
 from data_gradients.utils.data_classes.image_channels import ImageChannels
-from data_gradients.dataset_adapters.formatters.utils import Uint8ImageFormat
 
 
 class TestComputeHistogram(unittest.TestCase):
@@ -23,7 +23,12 @@ class TestComputeHistogram(unittest.TestCase):
 
         expected_result = {
             "train": {"name": "bbox_area_sqrt", "bin_width": 1, "max_value": 3, "histograms": {"A": [0, 1, 0, 2], "B": [0, 0, 1, 0]}},
-            "val": {"name": "bbox_area_sqrt", "bin_width": 1, "max_value": 3, "histograms": {"A": [0, 0, 1, 0], "B": [0, 0, 0, 1], "C": [0, 0, 0, 1]}},
+            "val": {
+                "name": "bbox_area_sqrt",
+                "bin_width": 1,
+                "max_value": 3,
+                "histograms": {"A": [0, 0, 1, 0], "B": [0, 0, 0, 1], "C": [0, 0, 0, 1]},
+            },
         }
 
         self.assertEqual(result, expected_result)
@@ -84,7 +89,12 @@ class TestComputeHistogram(unittest.TestCase):
             "histograms": {"A": [0, 0, 1, 0, 0], "B": [0, 0, 0, 1, 0], "C": [0, 0, 0, 1, 1], "D": [0, 1, 0, 0, 0], "E": [0, 0, 1, 0, 0]},
         }
 
-        expected_result_val = {"name": "bbox_area_sqrt", "bin_width": 1, "max_value": 4, "histograms": {"A": [0, 0, 1, 0, 0], "B": [0, 1, 0, 1, 0]}}
+        expected_result_val = {
+            "name": "bbox_area_sqrt",
+            "bin_width": 1,
+            "max_value": 4,
+            "histograms": {"A": [0, 0, 1, 0, 0], "B": [0, 1, 0, 1, 0]},
+        }
 
         self.assertEqual(histogram_dict_train, expected_result_train)
         self.assertEqual(histogram_dict_val, expected_result_val)

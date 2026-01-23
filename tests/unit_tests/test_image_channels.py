@@ -1,13 +1,18 @@
 import unittest
+
 import numpy as np
 
 # from data_gradients.dataset_adapters.config.data_config import ImageChannels, ImageFormat
-
-from data_gradients.utils.data_classes.image_channels import RGBChannels, BGRChannels, GrayscaleChannels, LABChannels, image_channel_instance_factory
+from data_gradients.utils.data_classes.image_channels import (
+    BGRChannels,
+    GrayscaleChannels,
+    LABChannels,
+    RGBChannels,
+    image_channel_instance_factory,
+)
 
 
 class TestImageChannelValidation(unittest.TestCase):
-
     # RGBChannels tests
     def test_valid_rgb(self):
         self.assertTrue(RGBChannels.validate_channels("RGB"))

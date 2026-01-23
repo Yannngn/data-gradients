@@ -1,11 +1,10 @@
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
+from data_gradients.feature_extractors.utils import MostImportantValuesSelector
 from data_gradients.utils.data_classes import SegmentationSample
 from data_gradients.visualize.seaborn_renderer import BarPlotOptions
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
-from data_gradients.feature_extractors.utils import MostImportantValuesSelector
 
 
 @register_feature_extractor()
@@ -75,7 +74,10 @@ class SegmentationClassFrequency(AbstractFeatureExtractor):
             tight_layout=True,
         )
 
-        json = {split: dict(df_class_count[df_class_count["split"] == split]["n_appearance"].describe()) for split in df_class_count["split"].unique()}
+        json = {
+            split: dict(df_class_count[df_class_count["split"] == split]["n_appearance"].describe())
+            for split in df_class_count["split"].unique()
+        }
 
         feature = Feature(
             data=df_class_count,

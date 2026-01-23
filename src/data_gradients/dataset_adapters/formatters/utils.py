@@ -1,21 +1,19 @@
 import logging
-
-from data_gradients.dataset_adapters.utils import channels_last_to_first
-
-
 from abc import ABC, abstractmethod
-from typing import Optional, List, Union
+from typing import Optional
+
 import numpy as np
 import torch
+
+from data_gradients.dataset_adapters.utils import channels_last_to_first
 
 logger = logging.getLogger(__name__)
 
 
-class DatasetFormatError(Exception):
-    ...
+class DatasetFormatError(Exception): ...
 
 
-def ensure_channel_first(images: Union[torch.Tensor, np.ndarray], n_image_channels: int) -> Union[torch.Tensor, np.ndarray]:
+def ensure_channel_first(images: torch.Tensor | np.ndarray, n_image_channels: int) -> torch.Tensor | np.ndarray:
     """Images should be [BS, C, H, W]. If [BS, W, H, C], permute
 
     :param images:              Tensor
@@ -27,7 +25,7 @@ def ensure_channel_first(images: Union[torch.Tensor, np.ndarray], n_image_channe
     return images
 
 
-def check_images_shape(images: Union[torch.Tensor, np.ndarray], n_image_channels: int) -> Union[torch.Tensor, np.ndarray]:
+def check_images_shape(images: torch.Tensor | np.ndarray, n_image_channels: int) -> torch.Tensor | np.ndarray:
     """Validate images dimensions are (BS, C, H, W)
 
     :param images:              Tensor [BS, C, H, W]
@@ -45,11 +43,11 @@ def check_images_shape(images: Union[torch.Tensor, np.ndarray], n_image_channels
 
 class ImageFormat(ABC):
     @abstractmethod
-    def convert_image_to_float(self, images: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def convert_image_to_float(self, images: torch.Tensor | np.ndarray) -> torch.Tensor | np.ndarray:
         pass
 
     @abstractmethod
-    def convert_image_from_float(self, images: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def convert_image_from_float(self, images: torch.Tensor | np.ndarray) -> torch.Tensor | np.ndarray:
         pass
 
     @abstractmethod
@@ -65,10 +63,10 @@ class ImageFormat(ABC):
 
 
 class FloatImageFormat(ImageFormat):
-    def convert_image_to_float(self, images: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def convert_image_to_float(self, images: torch.Tensor | np.ndarray) -> torch.Tensor | np.ndarray:
         return images
 
-    def convert_image_from_float(self, images: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def convert_image_from_float(self, images: torch.Tensor | np.ndarray) -> torch.Tensor | np.ndarray:
         return images
 
     def to_json(self) -> dict:
@@ -80,10 +78,10 @@ class FloatImageFormat(ImageFormat):
 
 
 class Uint8ImageFormat(ImageFormat):
-    def convert_image_to_float(self, images: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def convert_image_to_float(self, images: torch.Tensor | np.ndarray) -> torch.Tensor | np.ndarray:
         return images / 255.0
 
-    def convert_image_from_float(self, images: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def convert_image_from_float(self, images: torch.Tensor | np.ndarray) -> torch.Tensor | np.ndarray:
         if torch.is_tensor(images):
             return (images * 255).to(torch.uint8)
         else:
@@ -98,20 +96,20 @@ class Uint8ImageFormat(ImageFormat):
 
 
 class ScaledFloatImageFormat(ImageFormat):
-    def __init__(self, mean: List[float], std: List[float]):
+    def __init__(self, mean: list[float], std: list[float]):
         self.np_mean = np.array(mean)
         self.np_std = np.array(std)
 
         self.torch_mean = torch.from_numpy(self.np_mean).view(3, 1, 1)
         self.torch_std = torch.from_numpy(self.np_std).view(3, 1, 1)
 
-    def convert_image_to_float(self, images: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def convert_image_to_float(self, images: torch.Tensor | np.ndarray) -> torch.Tensor | np.ndarray:
         if torch.is_tensor(images):
             return (images - self.torch_mean) / self.torch_std
         else:
             return (images - self.np_mean) / self.np_std
 
-    def convert_image_from_float(self, images: Union[torch.Tensor, np.ndarray]) -> Union[torch.Tensor, np.ndarray]:
+    def convert_image_from_float(self, images: torch.Tensor | np.ndarray) -> torch.Tensor | np.ndarray:
         if torch.is_tensor(images):
             return (images * self.torch_std) + self.torch_mean
         else:
@@ -136,7 +134,6 @@ class ScaledFloatImageFormat(ImageFormat):
 
 
 class ImageFormatFactory:
-
     _normalizers = {
         Uint8ImageFormat.__name__: Uint8ImageFormat,
         FloatImageFormat.__name__: FloatImageFormat,
@@ -144,7 +141,7 @@ class ImageFormatFactory:
     }
 
     @staticmethod
-    def get_normalizer_from_cache(json_data: dict) -> Optional[ImageFormat]:
+    def get_normalizer_from_cache(json_data: dict) -> ImageFormat | None:
         image_format_type = json_data.get("type")
         image_format_class = ImageFormatFactory._normalizers.get(image_format_type)
         if image_format_class:

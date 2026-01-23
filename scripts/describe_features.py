@@ -1,5 +1,6 @@
-from data_gradients.feature_extractors import common, object_detection, segmentation, classification
 import inspect
+
+from data_gradients.feature_extractors import classification, common, object_detection, segmentation
 
 
 def section_name_to_md_link(name: str) -> str:
@@ -29,8 +30,7 @@ feature_descriptions = ""
 table_of_contents = "### List of Features\n\n"
 
 # Iterate over modules
-for task, module in zip(tasks, modules):
-
+for task, module in zip(tasks, modules, strict=False):
     # Add module to table of contents
     table_of_contents += f"- {section_name_to_md_link(task)}\n"
 

@@ -1,11 +1,10 @@
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
+from data_gradients.sample_preprocessor.utils import contours
 from data_gradients.utils.data_classes import SegmentationSample
 from data_gradients.visualize.seaborn_renderer import KDEPlotOptions
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
-from data_gradients.sample_preprocessor.utils import contours
 
 
 @register_feature_extractor()
@@ -45,7 +44,10 @@ class SegmentationComponentsConvexity(AbstractFeatureExtractor):
             sharey=True,
         )
 
-        json = dict(train=dict(df[df["split"] == "train"]["convexity_measure"].describe()), val=dict(df[df["split"] == "val"]["convexity_measure"].describe()))
+        json = dict(
+            train=dict(df[df["split"] == "train"]["convexity_measure"].describe()),
+            val=dict(df[df["split"] == "val"]["convexity_measure"].describe()),
+        )
 
         feature = Feature(
             data=df,

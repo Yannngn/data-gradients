@@ -1,13 +1,10 @@
-from typing import List, Optional
-
 import numpy as np
 import pandas as pd
 import torch
 from torchvision.ops import box_iou
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
 from data_gradients.utils.data_classes import DetectionSample
 from data_gradients.visualize.plot_options import HeatmapOptions
 
@@ -40,7 +37,7 @@ class DetectionBoundingBoxIoU(AbstractFeatureExtractor):
         iou[np.eye(iou.shape[0], dtype=bool)] = 0
 
         ii, jj = np.nonzero(iou)
-        for i, j in zip(ii, jj):
+        for i, j in zip(ii, jj, strict=False):
             self.data.append(
                 {
                     "split": sample.split,
@@ -52,7 +49,7 @@ class DetectionBoundingBoxIoU(AbstractFeatureExtractor):
                 }
             )
 
-    def _compute_cumulative_counts_at_thresholds(self, df: pd.DataFrame, class_names: List[str], num_bins: int) -> np.ndarray:
+    def _compute_cumulative_counts_at_thresholds(self, df: pd.DataFrame, class_names: list[str], num_bins: int) -> np.ndarray:
         """
         Compute the number of boxes per each class that is above a certain IoU threshold.
         """
@@ -65,7 +62,6 @@ class DetectionBoundingBoxIoU(AbstractFeatureExtractor):
         return counts
 
     def aggregate(self) -> Feature:
-
         df = pd.DataFrame(self.data).sort_values(by="class_id")
 
         bins = np.linspace(0, 1, self.num_bins + 1)
@@ -97,7 +93,9 @@ class DetectionBoundingBoxIoU(AbstractFeatureExtractor):
         xticklabels = [f"IoU < {bins[x]:.2f}" for x in range(1, len(bins))]
 
         if not data:
-            return Feature(data=None, plot_options=None, json={}, title="Intersection of Bounding Boxes", description="No Overlap between any class")
+            return Feature(
+                data=None, plot_options=None, json={}, title="Intersection of Bounding Boxes", description="No Overlap between any class"
+            )
 
         # Height of the plot is proportional to the number of classes
         figsize_x = min(max(10, len(bins)), 25)
@@ -139,7 +137,7 @@ class DetectionBoundingBoxIoU(AbstractFeatureExtractor):
             description += "Only intersection of boxes of same class is considered."
         return description
 
-    def _generate_notice(self, class_agnostic: bool) -> Optional[str]:
+    def _generate_notice(self, class_agnostic: bool) -> str | None:
         description = "Nothing to show.<br/>"
         if class_agnostic:
             return description + "This indicates that you have at most 1 class per image, so no IoU can be computed."

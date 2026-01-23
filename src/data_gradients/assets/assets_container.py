@@ -10,7 +10,7 @@ class Asset:
         self.path = path
 
     def read(self):
-        with open(self.path, "r") as f:
+        with open(self.path) as f:
             return f.read()
 
 
@@ -22,7 +22,7 @@ class TextAssets:
         asset_path = os.path.join(self.asset_dir, name + ".txt")
 
         if not os.path.exists(asset_path):
-            raise AssetNotFoundException("Asset not found: {}".format(name))
+            raise AssetNotFoundException(f"Asset not found: {name}")
 
         return Asset(asset_path).read()
 
@@ -35,7 +35,7 @@ class HTMLAssets:
         asset_path = os.path.join(self.asset_dir, name + ".html")
 
         if not os.path.exists(asset_path):
-            raise AssetNotFoundException("Asset not found: {}".format(name))
+            raise AssetNotFoundException(f"Asset not found: {name}")
 
         return Asset(asset_path).read()
 
@@ -48,7 +48,7 @@ class CSSAssets:
         asset_path = os.path.join(self.asset_dir, name + ".css")
 
         if not os.path.exists(asset_path):
-            raise AssetNotFoundException("Asset not found: {}".format(name))
+            raise AssetNotFoundException(f"Asset not found: {name}")
 
         return asset_path
 
@@ -58,17 +58,15 @@ class ImageAssets:
         self.asset_dir = os.path.join(asset_dir, "images")
 
     def __getattr__(self, name):
-
         for ext in ["jpg", "jpeg", "png", "gif"]:
             asset_path = os.path.join(self.asset_dir, f"{name}.{ext}")
 
             if os.path.exists(asset_path):
                 return asset_path
-        raise AssetNotFoundException("Asset not found: {}".format(name))
+        raise AssetNotFoundException(f"Asset not found: {name}")
 
 
 class Assets:
-
     """
     Assets class to allow quick access to assets.
     usage:

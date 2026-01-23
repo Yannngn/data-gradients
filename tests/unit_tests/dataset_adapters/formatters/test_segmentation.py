@@ -1,8 +1,8 @@
 import unittest
+
 import torch
+
 from data_gradients.dataset_adapters.config.data_config import SegmentationDataConfig
-
-
 from data_gradients.dataset_adapters.formatters.segmentation import SegmentationBatchFormatter
 from data_gradients.utils.data_classes.image_channels import ImageChannels
 
@@ -66,7 +66,9 @@ class TestSegmentationBatchFormatter(unittest.TestCase):
         labels = torch.rand(8, 64, 64)
         _, out_labels = formatter.format(images, labels)
 
-        self.assertTrue(torch.all((out_labels == 0) | (out_labels == 1)))  # Threshold should be applied to to exclusively 0 and 1 labels (categorical)
+        self.assertTrue(
+            torch.all((out_labels == 0) | (out_labels == 1))
+        )  # Threshold should be applied to to exclusively 0 and 1 labels (categorical)
         self.assertGreater((out_labels == 1).sum(), (out_labels == 0).sum())  # Threshold is low, so most values should be 1
 
     def test_image_value_ranges(self):

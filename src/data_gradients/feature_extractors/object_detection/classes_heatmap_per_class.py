@@ -1,8 +1,8 @@
-from typing import Tuple, Optional
 import numpy as np
+
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.utils.data_classes import DetectionSample
 from data_gradients.feature_extractors.common.heatmap import BaseClassHeatmap
+from data_gradients.utils.data_classes import DetectionSample
 from data_gradients.utils.detection import scale_bboxes
 
 
@@ -15,7 +15,7 @@ class DetectionClassHeatmap(BaseClassHeatmap):
     biases in object placement or dataset collection.
     """
 
-    def __init__(self, n_rows: int = 12, n_cols: int = 2, heatmap_shape: Tuple[int, int] = (200, 200)):
+    def __init__(self, n_rows: int = 12, n_cols: int = 2, heatmap_shape: tuple[int, int] = (200, 200)):
         """
         :param n_rows:          How many rows per split.
         :param n_cols:          How many columns per split.
@@ -24,7 +24,6 @@ class DetectionClassHeatmap(BaseClassHeatmap):
         super().__init__(n_rows=n_rows, n_cols=n_cols, heatmap_shape=heatmap_shape)
 
     def update(self, sample: DetectionSample):
-
         if not self.class_names:
             self.class_names = sample.class_names
 
@@ -34,7 +33,7 @@ class DetectionClassHeatmap(BaseClassHeatmap):
         max_class_id = max(sample.class_names.keys())
         split_heatmap = self.heatmaps_per_split.get(sample.split, np.zeros((max_class_id + 1, *self.heatmap_shape)))
 
-        for class_id, (x1, y1, x2, y2) in zip(sample.class_ids, bboxes_xyxy):
+        for class_id, (x1, y1, x2, y2) in zip(sample.class_ids, bboxes_xyxy, strict=False):
             x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
             split_heatmap[class_id, y1:y2, x1:x2] += 1
 
@@ -53,7 +52,7 @@ class DetectionClassHeatmap(BaseClassHeatmap):
             "This is done to focus on localization of objects in the scene (e.g. top-right, center, ...) independently of the original image sizes."
         )
 
-    def _generate_notice(self) -> Optional[str]:
+    def _generate_notice(self) -> str | None:
         if len(self.class_names) > self.n_cols * self.n_rows:
             return (
                 f"Only the {self.n_cols * self.n_rows} classes with highest density are shown.<br/>"

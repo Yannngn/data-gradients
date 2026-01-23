@@ -1,11 +1,10 @@
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
 from data_gradients.utils.common import LABELS_PALETTE
 from data_gradients.utils.data_classes import SegmentationSample
 from data_gradients.visualize.seaborn_renderer import Hist2DPlotOptions
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
 
 
 @register_feature_extractor()
@@ -22,7 +21,6 @@ class SegmentationBoundingBoxResolution(AbstractFeatureExtractor):
         self.data = []
 
     def update(self, sample: SegmentationSample):
-
         height, width = sample.image.shape[:2]
         for j, class_channel in enumerate(sample.contours):
             for contour in class_channel:

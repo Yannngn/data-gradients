@@ -1,11 +1,9 @@
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
+from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
 from data_gradients.utils.data_classes.data_samples import ImageSample
-from data_gradients.visualize.plot_options import KDEPlotOptions
-from data_gradients.visualize.plot_options import BarPlotOptions
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
+from data_gradients.visualize.plot_options import BarPlotOptions, KDEPlotOptions
 
 
 @register_feature_extractor()
@@ -52,7 +50,9 @@ class ImagesAverageBrightness(AbstractFeatureExtractor):
                 sharey=True,
             )
 
-        json = dict(train=dict(df[df["split"] == "train"]["brightness"].describe()), val=dict(df[df["split"] == "val"]["brightness"].describe()))
+        json = dict(
+            train=dict(df[df["split"] == "train"]["brightness"].describe()), val=dict(df[df["split"] == "val"]["brightness"].describe())
+        )
 
         feature = Feature(
             data=df,

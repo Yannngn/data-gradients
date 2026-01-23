@@ -1,10 +1,11 @@
 import unittest
+
 import numpy as np
 
-from data_gradients.utils.data_classes.data_samples import ImageSample
 from data_gradients.feature_extractors.common.image_resolution import ImagesResolution
-from data_gradients.visualize.seaborn_renderer import SeabornRenderer
+from data_gradients.utils.data_classes.data_samples import ImageSample
 from data_gradients.utils.data_classes.image_channels import ImageChannels
+from data_gradients.visualize.seaborn_renderer import SeabornRenderer
 
 
 class ImageResolutionTest(unittest.TestCase):
@@ -80,8 +81,26 @@ class ImageResolutionTest(unittest.TestCase):
         output_json = self.extractor.aggregate().json
 
         expected_json = {
-            "width": {"count": 8.0, "mean": 193.75, "std": 72.88689868556625, "min": 100.0, "25%": 137.5, "50%": 200.0, "75%": 250.0, "max": 300.0},
-            "height": {"count": 8.0, "mean": 143.75, "std": 49.55156044825574, "min": 50.0, "25%": 137.5, "50%": 150.0, "75%": 162.5, "max": 200.0},
+            "width": {
+                "count": 8.0,
+                "mean": 193.75,
+                "std": 72.88689868556625,
+                "min": 100.0,
+                "25%": 137.5,
+                "50%": 200.0,
+                "75%": 250.0,
+                "max": 300.0,
+            },
+            "height": {
+                "count": 8.0,
+                "mean": 143.75,
+                "std": 49.55156044825574,
+                "min": 50.0,
+                "25%": 137.5,
+                "50%": 150.0,
+                "75%": 162.5,
+                "max": 200.0,
+            },
         }
 
         for col in ("width", "height"):

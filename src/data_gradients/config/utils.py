@@ -1,21 +1,21 @@
 import os.path
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Any
 
 import hydra
-from hydra import initialize_config_dir, compose
+from hydra import compose, initialize_config_dir
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig, OmegaConf
 
+from data_gradients.common.factories import FeatureExtractorsFactory, ListFactory
 from data_gradients.dataset_adapters.config.typing_utils import FeatureExtractorsType
 from data_gradients.feature_extractors import AbstractFeatureExtractor
-from data_gradients.common.factories import FeatureExtractorsFactory, ListFactory
 
 OmegaConf.register_new_resolver("merge", lambda x, y: x + y)
 
 
 def load_report_feature_extractors(
-    config_name: str, config_dir: Optional[str] = None, overrides: Optional[Dict[str, Any]] = None
-) -> Dict[str, List[AbstractFeatureExtractor]]:
+    config_name: str, config_dir: str | None = None, overrides: dict[str, Any] | None = None
+) -> dict[str, list[AbstractFeatureExtractor]]:
     """Load and instantiate extractors from a Hydra configuration file.
 
     :param config_name: Name of the Hydra configuration file to load.
@@ -37,7 +37,7 @@ def get_grouped_feature_extractors(
     default_config_name: str,
     config_path: str,
     feature_extractors: FeatureExtractorsType,
-) -> Dict[str, List[AbstractFeatureExtractor]]:
+) -> dict[str, list[AbstractFeatureExtractor]]:
     if feature_extractors is None:
         if config_path is None:
             config_dir, config_name = None, default_config_name
@@ -68,12 +68,14 @@ def get_grouped_feature_extractors(
                         f"Initialize the feature extractor and pass it as an instance"
                     ) from e
             else:
-                raise TypeError("Unsupported feature extractor type. Supported types are string (name of FeatureExtractor) or AbstractFeatureExtractor")
+                raise TypeError(
+                    "Unsupported feature extractor type. Supported types are string (name of FeatureExtractor) or AbstractFeatureExtractor"
+                )
 
     return grouped_feature_extractors
 
 
-def load_config(config_name: str, config_dir: str, overrides: Optional[Dict[str, Any]] = None) -> DictConfig:
+def load_config(config_name: str, config_dir: str, overrides: dict[str, Any] | None = None) -> DictConfig:
     """Load a Hydra configuration file and instantiate it.
 
     :param config_name: Name of the Hydra configuration file to load.
@@ -93,7 +95,7 @@ def load_config(config_name: str, config_dir: str, overrides: Optional[Dict[str,
     return hydra.utils.instantiate(cfg)
 
 
-def dict_to_dotlist_overrides(dict_params: Dict[str, Any]) -> List[str]:
+def dict_to_dotlist_overrides(dict_params: dict[str, Any]) -> list[str]:
     """Convert a dictionary to a list of strings in format 'path.to.key=value', similar the hydra command line overrides.
 
     >>> dict_to_dotlist({'experiment_name': 'adam', 'model': {'type': 'resnet', 'depth': 18, 'num_classes': 10}})
@@ -111,7 +113,7 @@ def dict_to_dotlist_overrides(dict_params: Dict[str, Any]) -> List[str]:
     return out
 
 
-def dict_to_dotlist(dict_params: Dict[str, Any]) -> List[Tuple[str, Any]]:
+def dict_to_dotlist(dict_params: dict[str, Any]) -> list[tuple[str, Any]]:
     """Convert a dictionary to a list of dot-separated key-value pairs.
 
     This function takes a dictionary as input and converts it to a list of key-value pairs, where each key is a

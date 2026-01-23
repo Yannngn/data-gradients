@@ -1,28 +1,26 @@
 import dataclasses
-from typing import List
 
 import numpy as np
 from jinja2 import Template
 
+from data_gradients.assets import assets
 from data_gradients.common.registry.registry import register_feature_extractor
 from data_gradients.feature_extractors import AbstractFeatureExtractor
 from data_gradients.feature_extractors.abstract_feature_extractor import Feature
-from data_gradients.assets import assets
-from data_gradients.utils.data_classes.data_samples import ImageSample, SegmentationSample, DetectionSample
+from data_gradients.utils.data_classes.data_samples import DetectionSample, ImageSample, SegmentationSample
 
 
 @dataclasses.dataclass
 class BasicStatistics:
-
     num_samples: int = 0
     classes_count: int = 0
     classes_in_use: int = 0
-    classes: List[int] = dataclasses.field(default_factory=list)
+    classes: list[int] = dataclasses.field(default_factory=list)
     num_annotations: int = 0
     images_without_annotation: int = 0
-    images_resolutions: List[int] = dataclasses.field(default_factory=list)
-    annotations_sizes: List[int] = dataclasses.field(default_factory=list)
-    annotations_per_image: List[int] = dataclasses.field(default_factory=list)
+    images_resolutions: list[int] = dataclasses.field(default_factory=list)
+    annotations_sizes: list[int] = dataclasses.field(default_factory=list)
+    annotations_per_image: list[int] = dataclasses.field(default_factory=list)
     med_image_resolution: int = 0
     smallest_annotations: int = 0
     largest_annotations: int = 0
@@ -47,7 +45,6 @@ class SummaryStats(AbstractFeatureExtractor):
         self.template = Template(source=assets.html.basic_info_fe)
 
     def update(self, sample: ImageSample):
-
         basic_stats = self.stats[sample.split]
 
         height, width = sample.image.shape[:2]

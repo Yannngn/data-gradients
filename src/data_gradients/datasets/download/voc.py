@@ -1,5 +1,4 @@
 import os
-from typing import Union
 
 from torchvision.datasets.utils import download_and_extract_archive
 
@@ -43,8 +42,10 @@ DATASET_YEAR_DICT = {
 }
 
 
-def download_VOC(year: Union[int, str], download_root: str):
+def download_VOC(year: int | str, download_root: str):
     dataset_info = DATASET_YEAR_DICT.get(str(year))
     if dataset_info is None:
         raise ValueError(f"`year={year}` is not a valid VOC dataset year. Should be one of {list(DATASET_YEAR_DICT.keys())}")
-    download_and_extract_archive(url=dataset_info["url"], download_root=download_root, filename=dataset_info["filename"], md5=dataset_info["md5"])
+    download_and_extract_archive(
+        url=dataset_info["url"], download_root=download_root, filename=dataset_info["filename"], md5=dataset_info["md5"]
+    )

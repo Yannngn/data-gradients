@@ -1,21 +1,27 @@
-import os
 import logging
+import os
+from abc import ABC
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 
 import numpy as np
 import platformdirs
 import torch
-from abc import ABC
-from dataclasses import dataclass
-from typing import Dict, Optional, Callable, Union, List, Mapping
 
 import data_gradients
-from data_gradients.dataset_adapters.config.questions import FixedOptionsQuestion, OpenEndedQuestion, text_to_yellow
 from data_gradients.dataset_adapters.config.caching_utils import TensorExtractorResolver, XYXYConverterResolver
-from data_gradients.dataset_adapters.config.typing_utils import SupportedDataType, JSONDict
+from data_gradients.dataset_adapters.config.questions import FixedOptionsQuestion, OpenEndedQuestion, text_to_yellow
+from data_gradients.dataset_adapters.config.typing_utils import JSONDict, SupportedDataType
+from data_gradients.dataset_adapters.formatters.utils import (
+    FloatImageFormat,
+    ImageFormat,
+    ImageFormatFactory,
+    ScaledFloatImageFormat,
+    Uint8ImageFormat,
+)
+from data_gradients.utils.data_classes.image_channels import ImageChannels
 from data_gradients.utils.detection import XYXYConverter
 from data_gradients.utils.utils import safe_json_load, write_json
-from data_gradients.utils.data_classes.image_channels import ImageChannels
-from data_gradients.dataset_adapters.formatters.utils import ImageFormat, Uint8ImageFormat, FloatImageFormat, ScaledFloatImageFormat, ImageFormatFactory
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,18 +41,18 @@ class DataConfig(ABC):
             Also supports saving and loading from callable defined within DataGradients.
     """
 
-    images_extractor: Union[None, str, Callable[[SupportedDataType], torch.Tensor]] = None
-    labels_extractor: Union[None, str, Callable[[SupportedDataType], torch.Tensor]] = None
-    is_batch: Union[None, bool] = None
+    images_extractor: None | str | Callable[[SupportedDataType], torch.Tensor] = None
+    labels_extractor: None | str | Callable[[SupportedDataType], torch.Tensor] = None
+    is_batch: None | bool = None
 
-    image_channels: Union[None, ImageChannels] = None
-    image_format: Union[None, ImageFormat] = None
+    image_channels: None | ImageChannels = None
+    image_format: None | ImageFormat = None
 
-    n_classes: Union[None, int] = None
-    class_names: Union[None, Dict[int, str]] = None
-    class_names_to_use: Union[None, List[str]] = None
+    n_classes: None | int = None
+    class_names: None | dict[int, str] = None
+    class_names_to_use: None | list[str] = None
 
-    cache_path: Optional[str] = None
+    cache_path: str | None = None
 
     def __post_init__(self):
         # Once the object is initialized, we check if the cache is activated or not.
@@ -84,7 +90,7 @@ class DataConfig(ABC):
             raise TypeError(f"{e}\n\t => Could not load `{cls.__name__}` from cache.") from e
 
     @staticmethod
-    def _load_json_dict(path: str) -> Dict:
+    def _load_json_dict(path: str) -> dict:
         """Load cache if available."""
         json_dict = safe_json_load(path=path)
         metadata = json_dict.get("metadata", {})
@@ -166,20 +172,18 @@ class DataConfig(ABC):
         if self.image_format is None:
             self.image_format = ImageFormatFactory.get_normalizer_from_cache(json_data=json_dict.get("image_format", {}))
 
-    def get_images_extractor(self, question: Optional[FixedOptionsQuestion] = None, hint: str = "") -> Callable[[SupportedDataType], torch.Tensor]:
+    def get_images_extractor(self, question: FixedOptionsQuestion | None = None, hint: str = "") -> Callable[[SupportedDataType], torch.Tensor]:
         if self.images_extractor is None:
             self.images_extractor = question.ask(hint=hint)
         return TensorExtractorResolver.to_callable(tensor_extractor=self.images_extractor)
 
-    def get_labels_extractor(self, question: Optional[FixedOptionsQuestion] = None, hint: str = "") -> Callable[[SupportedDataType], torch.Tensor]:
+    def get_labels_extractor(self, question: FixedOptionsQuestion | None = None, hint: str = "") -> Callable[[SupportedDataType], torch.Tensor]:
         if self.labels_extractor is None:
             self.labels_extractor = question.ask(hint=hint)
         return TensorExtractorResolver.to_callable(tensor_extractor=self.labels_extractor)
 
-    def get_image_channels(self, image: Union[torch.Tensor, np.ndarray]) -> ImageChannels:
-
+    def get_image_channels(self, image: torch.Tensor | np.ndarray) -> ImageChannels:
         if self.image_channels is None:
-
             if 1 in image.shape:
                 self.image_channels = ImageChannels.from_str("G")
 
@@ -244,7 +248,7 @@ class DataConfig(ABC):
             self.is_batch: bool = question.ask(hint=hint)
         return self.is_batch
 
-    def get_class_names(self) -> Dict[int, str]:
+    def get_class_names(self) -> dict[int, str]:
         if self.class_names is None:
             self._setup_class_related_params()
         return self.class_names
@@ -254,7 +258,7 @@ class DataConfig(ABC):
             self._setup_class_related_params()
         return self.n_classes
 
-    def get_class_names_to_use(self) -> List[str]:
+    def get_class_names_to_use(self) -> list[str]:
         if self.class_names_to_use is None:
             self._setup_class_related_params()
         return self.class_names_to_use
@@ -269,7 +273,7 @@ class DataConfig(ABC):
         self.n_classes = len(self.class_names)
         self.class_names_to_use = resolve_class_names_to_use(class_names=self.class_names, class_names_to_use=self.class_names_to_use)
 
-    def get_image_format(self, images: Union[torch.Tensor, np.ndarray]) -> ImageFormat:
+    def get_image_format(self, images: torch.Tensor | np.ndarray) -> ImageFormat:
         if self.image_format is not None:
             return self.image_format
 
@@ -286,7 +290,8 @@ class DataConfig(ABC):
         # For standardized normalizer, we need to ask user for mean and std
         else:
             question = OpenEndedQuestion(
-                question="Enter the mean values for image normalization (comma-separated, e.g., `0.485, 0.456, 0.406`):", validation=_validate_float_list
+                question="Enter the mean values for image normalization (comma-separated, e.g., `0.485, 0.456, 0.406`):",
+                validation=_validate_float_list,
             )
             mean_str = question.ask()
             mean = [float(x.strip()) for x in mean_str.split(",")]
@@ -314,8 +319,8 @@ def _validate_float_list(value_str: str) -> bool:
 
 @dataclass
 class ImageChannel:
-    channel_names: List[str]
-    channels_idx_to_visualize: List[str]
+    channel_names: list[str]
+    channels_idx_to_visualize: list[str]
     rgb_converter: Callable[[np.ndarray], np.ndarray]
 
 
@@ -331,8 +336,8 @@ class SegmentationDataConfig(DataConfig):
 
 @dataclass
 class DetectionDataConfig(DataConfig):
-    is_label_first: Union[None, bool] = None
-    xyxy_converter: Union[None, str, Callable[[torch.Tensor], torch.Tensor]] = None
+    is_label_first: None | bool = None
+    xyxy_converter: None | str | Callable[[torch.Tensor], torch.Tensor] = None
 
     def to_json(self) -> JSONDict:
         json_dict = {
@@ -371,7 +376,7 @@ class DetectionDataConfig(DataConfig):
         return XYXYConverterResolver.to_callable(self.xyxy_converter)
 
 
-def resolve_class_names(class_names: Union[List[str], Dict[int, str]], n_classes: int) -> Dict[int, str]:
+def resolve_class_names(class_names: list[str] | dict[int, str], n_classes: int) -> dict[int, str]:
     """Ensure that either `class_names` or `n_classes` is specified, but not both. Return the list of class names that will be used."""
     if n_classes and class_names and (len(class_names) != n_classes):
         raise RuntimeError(f"`len(class_names)={len(class_names)} != n_classes`.")
@@ -394,17 +399,19 @@ def resolve_class_names(class_names: Union[List[str], Dict[int, str]], n_classes
         return {i: f"class_{i}" for i in range(n_classes)}
     elif class_names:
         if isinstance(class_names, list):
-            return dict(zip(range(len(class_names)), class_names))
+            return dict(zip(range(len(class_names)), class_names, strict=False))
         elif isinstance(class_names, dict):
             return class_names
     else:
         return {i: f"class_{i}" for i in range(n_classes)}
 
 
-def resolve_class_names_to_use(class_names: Dict[int, str], class_names_to_use: List[str]) -> List[str]:
+def resolve_class_names_to_use(class_names: dict[int, str], class_names_to_use: list[str]) -> list[str]:
     """Define `class_names_to_use` from `class_names` if it is specified. Otherwise, return the list of class names that will be used."""
     if class_names_to_use:
         invalid_class_names_to_use = set(class_names_to_use) - set(class_names.values())
         if invalid_class_names_to_use != set():
-            raise RuntimeError(f"You defined `class_names_to_use` with classes that are not listed in `class_names`: {invalid_class_names_to_use}")
+            raise RuntimeError(
+                f"You defined `class_names_to_use` with classes that are not listed in `class_names`: {invalid_class_names_to_use}"
+            )
     return class_names_to_use or list(class_names.values())

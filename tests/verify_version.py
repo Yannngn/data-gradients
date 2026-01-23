@@ -3,7 +3,6 @@ import sys
 import data_gradients
 
 if __name__ == "__main__":
-
     ci_version = sys.argv[1]
     if ci_version == data_gradients.__version__:
         sys.exit(0)

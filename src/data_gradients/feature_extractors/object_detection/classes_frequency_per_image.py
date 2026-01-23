@@ -1,11 +1,10 @@
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
+from data_gradients.feature_extractors.utils import MostImportantValuesSelector
 from data_gradients.utils.data_classes import DetectionSample
 from data_gradients.visualize.plot_options import ViolinPlotOptions
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
-from data_gradients.feature_extractors.utils import MostImportantValuesSelector
 
 
 @register_feature_extractor()
@@ -32,7 +31,7 @@ class DetectionClassesPerImageCount(AbstractFeatureExtractor):
         self.data = []
 
     def update(self, sample: DetectionSample):
-        for class_id, bbox_xyxy in zip(sample.class_ids, sample.bboxes_xyxy):
+        for class_id, bbox_xyxy in zip(sample.class_ids, sample.bboxes_xyxy, strict=False):
             class_name = sample.class_names[class_id]
             self.data.append(
                 {
@@ -73,7 +72,10 @@ class DetectionClassesPerImageCount(AbstractFeatureExtractor):
             tight_layout=True,
         )
 
-        json = {split: dict(df_class_count[df_class_count["split"] == split]["n_appearance"].describe()) for split in df_class_count["split"].unique()}
+        json = {
+            split: dict(df_class_count[df_class_count["split"] == split]["n_appearance"].describe())
+            for split in df_class_count["split"].unique()
+        }
 
         feature = Feature(
             data=df_class_count,

@@ -5,23 +5,23 @@ The script requires a clear dataset directory structures and will not work in en
 """
 
 import os
-from data_gradients.managers.detection_manager import DetectionAnalysisManager
 
 from data_gradients.feature_extractors import (
-    SummaryStats,
-    ImagesResolution,
-    ImageColorDistribution,
-    ImagesAverageBrightness,
-    ImageDuplicates,
-    DetectionSampleVisualization,
-    DetectionClassHeatmap,
     DetectionBoundingBoxArea,
+    DetectionBoundingBoxIoU,
     DetectionBoundingBoxPerImageCount,
     DetectionBoundingBoxSize,
-    DetectionClassFrequency,
     DetectionClassesPerImageCount,
-    DetectionBoundingBoxIoU,
+    DetectionClassFrequency,
+    DetectionClassHeatmap,
+    DetectionSampleVisualization,
+    ImageColorDistribution,
+    ImageDuplicates,
+    ImagesAverageBrightness,
+    ImagesResolution,
+    SummaryStats,
 )
+from data_gradients.managers.detection_manager import DetectionAnalysisManager
 
 
 def _get_all_report_features(train_image_dir: str, valid_image_dir: str):
@@ -45,12 +45,13 @@ def _get_all_report_features(train_image_dir: str, valid_image_dir: str):
 
 
 if __name__ == "__main__":
-
     DetectionAnalysisManager.analyze_coco(
         root_dir="/data/coco",
         year=2017,
         report_title="COCO",
-        feature_extractors=_get_all_report_features(train_image_dir="/data/coco/images/train2017/", valid_image_dir="/data/coco/images/val2017/"),
+        feature_extractors=_get_all_report_features(
+            train_image_dir="/data/coco/images/train2017/", valid_image_dir="/data/coco/images/val2017/"
+        ),
     )
 
     # VOC dataset does not clearly split the train/valid sets so we cannot run duplicate analysis

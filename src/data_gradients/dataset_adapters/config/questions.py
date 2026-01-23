@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, List, Callable
+from collections.abc import Callable
+from typing import Any
 
-from data_gradients.utils.utils import text_to_blue, text_to_yellow, text_to_red
+from data_gradients.utils.utils import text_to_blue, text_to_red, text_to_yellow
 
 
 class Question(ABC):
@@ -33,7 +34,7 @@ class OpenEndedQuestion(Question):
         >>> name = open_question.ask()
     """
 
-    def __init__(self, question: str, validation: Optional[Callable[[str], bool]] = None):
+    def __init__(self, question: str, validation: Callable[[str], bool] | None = None):
         self.question = question
         self.validation = validation
 
@@ -57,7 +58,7 @@ class FixedOptionsQuestion(Question):
         >>> chosen_color = option_question.ask()
     """
 
-    def __init__(self, question: str, options: Dict[str, Any]):
+    def __init__(self, question: str, options: dict[str, Any]):
         self.question = question
         self.options = options
 
@@ -87,7 +88,9 @@ def is_notebook() -> bool:
         return False  # Probably standard Python interpreter
 
 
-def ask_via_stdin(question: str, optional_description: str, validate_func: Optional[callable] = None, input_message: str = "Enter your response >>> ") -> str:
+def ask_via_stdin(
+    question: str, optional_description: str, validate_func: callable | None = None, input_message: str = "Enter your response >>> "
+) -> str:
     """
     Get user input from the command line with optional validation.
 
@@ -142,14 +145,18 @@ def ask_option_via_stdin(question: FixedOptionsQuestion, hint: str) -> Any:
     :param hint:        A hint or additional instruction for the question.
     :return:            User's selected option.
     """
-    options_display = "\n".join([f"[{text_to_blue(idx)}] | {option_description}" for idx, option_description in enumerate(question.options.keys())])
+    options_display = "\n".join(
+        [f"[{text_to_blue(idx)}] | {option_description}" for idx, option_description in enumerate(question.options.keys())]
+    )
     description = f"{hint if hint else ''}\n{text_to_blue('Options')}:\n{options_display}"
 
     validate_func = lambda x: x.isdigit() and 0 <= int(x) <= len(question.options) - 1
     input_message = f"Your selection (Enter the {text_to_blue('corresponding number')}) >>> "
-    selected_index = int(ask_via_stdin(question=question.question, optional_description=description, validate_func=validate_func, input_message=input_message))
+    selected_index = int(
+        ask_via_stdin(question=question.question, optional_description=description, validate_func=validate_func, input_message=input_message)
+    )
 
-    options_descriptions, options_values = zip(*question.options.items())
+    options_descriptions, options_values = zip(*question.options.items(), strict=False)
 
     selected_description = options_descriptions[selected_index]
     selected_value = options_values[selected_index]
@@ -166,12 +173,12 @@ def ask_open_ended_via_jupyter(question: OpenEndedQuestion, hint: str) -> str:
     :param hint:        A hint or additional instruction for the question.
     :return:            User's response to the question.
     """
-    from data_gradients.utils.jupyter_utils import ui_events
-
     import ipywidgets as widgets
     from IPython.display import display
 
-    user_answer: Optional[str] = None
+    from data_gradients.utils.jupyter_utils import ui_events
+
+    user_answer: str | None = None
     validation_message = widgets.Label(value="")  # A label to display validation errors
 
     def on_submit(button):
@@ -180,7 +187,9 @@ def ask_open_ended_via_jupyter(question: OpenEndedQuestion, hint: str) -> str:
             user_answer = text_widget.value
             print(f"You entered: `{user_answer}`")
         else:
-            validation_message.value = f"`{text_to_red(f'{text_widget.value} is not a valid input!')} Please check the instruction and try again."
+            validation_message.value = (
+                f"`{text_to_red(f'{text_widget.value} is not a valid input!')} Please check the instruction and try again."
+            )
 
     # If there's a hint, display it using a Label widget
     hint_label = widgets.Label(value=hint) if hint else None
@@ -216,13 +225,13 @@ def ask_option_via_jupyter(question: FixedOptionsQuestion, hint: str) -> str:
     :param hint:        A hint or additional instruction for the question.
     :return:            User's selected option.
     """
-    from data_gradients.utils.jupyter_utils import ui_events
-
     import ipywidgets as widgets
     from IPython.display import display
 
-    options: List[str] = list(question.options.keys())
-    user_selected_index: Optional[int] = None
+    from data_gradients.utils.jupyter_utils import ui_events
+
+    options: list[str] = list(question.options.keys())
+    user_selected_index: int | None = None
 
     # Create a box to group the hint, the options as buttons, and any outputs
     box = widgets.VBox([])
@@ -250,7 +259,7 @@ def ask_option_via_jupyter(question: FixedOptionsQuestion, hint: str) -> str:
         outputs.append(output)
 
     # Combine buttons and their outputs for display
-    combined_widgets = [widget for pair in zip(buttons, outputs) for widget in pair]
+    combined_widgets = [widget for pair in zip(buttons, outputs, strict=False) for widget in pair]
 
     # Append the option buttons and outputs to the box
     box.children += tuple(combined_widgets)

@@ -1,12 +1,9 @@
-from typing import List, Dict, Tuple, Optional
-
 import numpy as np
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
 from data_gradients.utils.data_classes import DetectionSample
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
 from data_gradients.visualize.plot_options import HeatmapOptions
 
 DEFAULT_SIZES = [
@@ -40,7 +37,12 @@ class DetectionResizeImpact(AbstractFeatureExtractor):
     This analysis is crucial for determining resizing practices that prevent the loss of objects during image preprocessing.
     """
 
-    def __init__(self, resizing_sizes: Optional[List[Tuple[int, int]]] = None, area_thresholds: Optional[List[int]] = None, include_median_size: bool = True):
+    def __init__(
+        self,
+        resizing_sizes: list[tuple[int, int]] | None = None,
+        area_thresholds: list[int] | None = None,
+        include_median_size: bool = True,
+    ):
         """
         :param resizing_sizes:      List of tuples, where each tuple represents the dimensions (width, height) to which the image is resized.
                                 If None, a default list of sizes is used.
@@ -76,12 +78,12 @@ class DetectionResizeImpact(AbstractFeatureExtractor):
         resizing_size = sorted(resizing_size, key=lambda x: x[0] + x[1])
 
         splits = sorted(df["split"].unique())
-        data: Dict[str, np.ndarray] = {}
+        data: dict[str, np.ndarray] = {}
         for split in splits:
             split_df = df[df["split"] == split]
 
             rescale = {threshold: dict() for threshold in self.area_thresholds}
-            for (image_rescale_width, image_rescale_height) in resizing_size:
+            for image_rescale_width, image_rescale_height in resizing_size:
                 name = f"{image_rescale_width}x{image_rescale_height}"
 
                 rescaled_bbox_height = split_df["bboxes_height"] * image_rescale_height / split_df["image_height"]
@@ -96,7 +98,9 @@ class DetectionResizeImpact(AbstractFeatureExtractor):
         figsize_x = min(max(10, len(self.area_thresholds)), 25)
         figsize_y = min(max(6, int(len(resizing_size) * 0.3)), 175)
 
-        resizing_size_names = [f"{width}x{height}" if (width, height) != median_size else f"Median - {width}x{height}" for (width, height) in resizing_size]
+        resizing_size_names = [
+            f"{width}x{height}" if (width, height) != median_size else f"Median - {width}x{height}" for (width, height) in resizing_size
+        ]
         plot_options = HeatmapOptions(
             xticklabels=[f"Area < {threshold}" for threshold in self.area_thresholds],
             yticklabels=resizing_size_names,

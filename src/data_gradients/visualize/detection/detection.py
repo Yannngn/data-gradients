@@ -1,13 +1,12 @@
-from typing import Dict, Tuple, Set
 import cv2
-
 import numpy as np
+
 from data_gradients.visualize.detection.detection_legend import draw_legend_on_canvas
 from data_gradients.visualize.detection.utils import best_text_color, generate_color_mapping
 from data_gradients.visualize.utils import resize_and_align_bottom_center
 
 
-def draw_bboxes(image: np.ndarray, bboxes_xyxy: np.ndarray, bboxes_ids: np.ndarray, class_names: Dict[int, str]) -> np.ndarray:
+def draw_bboxes(image: np.ndarray, bboxes_xyxy: np.ndarray, bboxes_ids: np.ndarray, class_names: dict[int, str]) -> np.ndarray:
     """Draw annotated bboxes on an image.
 
     :param image:       Input image tensor.
@@ -23,9 +22,9 @@ def draw_bboxes(image: np.ndarray, bboxes_xyxy: np.ndarray, bboxes_ids: np.ndarr
     class_names_list = list(class_names.values())
 
     # Initialize an empty list to store the classes that appear in the image
-    classes_in_image_with_color: Set[Tuple[str, Tuple]] = set()
+    classes_in_image_with_color: set[tuple[str, tuple]] = set()
 
-    for (x1, y1, x2, y2), class_id in zip(bboxes_xyxy, bboxes_ids):
+    for (x1, y1, x2, y2), class_id in zip(bboxes_xyxy, bboxes_ids, strict=False):
         class_name: str = class_names[class_id]
         color_i = class_names_list.index(class_name)
         color = colors[color_i]
@@ -53,7 +52,7 @@ def draw_bboxes(image: np.ndarray, bboxes_xyxy: np.ndarray, bboxes_ids: np.ndarr
 
 def draw_bbox(
     image: np.ndarray,
-    color: Tuple[int, int, int],
+    color: tuple[int, int, int],
     box_thickness: int,
     x1: int,
     y1: int,
@@ -83,7 +82,7 @@ def draw_text_box(
     y: int,
     font: int,
     font_size: float,
-    background_color: Tuple[int, int, int],
+    background_color: tuple[int, int, int],
     thickness: int = 1,
 ) -> np.ndarray:
     """Draw a text inside a box
@@ -103,5 +102,7 @@ def draw_text_box(
     text_left_offset = 7
 
     image = cv2.rectangle(image, (x, y), (x + text_width + text_left_offset, y - text_height - int(15 * font_size)), background_color, -1)
-    image = cv2.putText(image, text, (x + text_left_offset, y - int(10 * font_size)), font, font_size, text_color, thickness, lineType=cv2.LINE_AA)
+    image = cv2.putText(
+        image, text, (x + text_left_offset, y - int(10 * font_size)), font, font_size, text_color, thickness, lineType=cv2.LINE_AA
+    )
     return image

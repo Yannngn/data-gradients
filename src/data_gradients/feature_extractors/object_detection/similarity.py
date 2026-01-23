@@ -1,17 +1,14 @@
-from typing import List, Optional
-
 import numpy as np
+import torch
 from torch.nn import Identity
-from torchvision.models import swin_v2_b, Swin_V2_B_Weights
+from torchvision.models import Swin_V2_B_Weights, swin_v2_b
+from torchvision.ops import box_iou
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
 from data_gradients.utils.data_classes import DetectionSample
+from data_gradients.utils.data_classes.image_channels import BGRChannels, GrayscaleChannels, ImageChannels, RGBChannels
 from data_gradients.visualize.plot_options import HeatmapOptions
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
-import torch
-from torchvision.ops import box_iou
-from data_gradients.utils.data_classes.image_channels import BGRChannels, RGBChannels, ImageChannels, GrayscaleChannels
 
 
 @register_feature_extractor("DetectionClassSimilarity")
@@ -28,7 +25,7 @@ class DetectionClassSimilarity(AbstractFeatureExtractor):
         iou_threshold (float): Threshold for Intersection over Union (IoU) to exclude overlapping bounding boxes.
     """
 
-    def __init__(self, iou_threshold: Optional[float] = 0.1):
+    def __init__(self, iou_threshold: float | None = 0.1):
         """
         Initializes the feature extractor with a pre-trained Vision Transformer model and an IoU threshold for bounding box filtering.
 
@@ -44,7 +41,7 @@ class DetectionClassSimilarity(AbstractFeatureExtractor):
         self.all_classes_list = None
         self.iou_threshold = iou_threshold
 
-    def extract_features(self, cropped_images: List[np.ndarray], image_channels: ImageChannels):
+    def extract_features(self, cropped_images: list[np.ndarray], image_channels: ImageChannels):
         """
         Extracts feature vectors from a list of cropped images using the pre-trained model.
 
@@ -77,7 +74,11 @@ class DetectionClassSimilarity(AbstractFeatureExtractor):
         class_ids = []
         iou_matrix = None
         image_channels = sample.image.channels
-        if not isinstance(image_channels, BGRChannels) and not isinstance(image_channels, RGBChannels) and not isinstance(image_channels, GrayscaleChannels):
+        if (
+            not isinstance(image_channels, BGRChannels)
+            and not isinstance(image_channels, RGBChannels)
+            and not isinstance(image_channels, GrayscaleChannels)
+        ):
             raise RuntimeError(f"Similarity feature only works with RGB, BGR or Greyscale samples, got {image_channels}")
 
         if self.all_classes_list is None:
@@ -86,7 +87,7 @@ class DetectionClassSimilarity(AbstractFeatureExtractor):
             bboxes = torch.tensor(sample.bboxes_xyxy)
             iou_matrix = box_iou(bboxes, bboxes)
 
-        for idx, (class_id, bbox_xyxy) in enumerate(zip(sample.class_ids, sample.bboxes_xyxy)):
+        for idx, (class_id, bbox_xyxy) in enumerate(zip(sample.class_ids, sample.bboxes_xyxy, strict=False)):
             x1, y1, x2, y2 = map(int, bbox_xyxy)  # Convert to integer if necessary
             x1, x2, y1, y2 = self._clip_to_image_bounds(image_height, image_width, x1, x2, y1, y2)
 
