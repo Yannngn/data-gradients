@@ -11,8 +11,9 @@ repos:
     rev: v0.9.2
     hooks:
       - id: ruff
-        args: [--fix]
+        args: [--fix, --config=pyproject.toml]
       - id: ruff-format
+        args: [--config=pyproject.toml]
 
   - repo: local
     hooks:

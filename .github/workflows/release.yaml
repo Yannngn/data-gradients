@@ -1,0 +1,50 @@
+# Release: build & publish to PyPI using uv on semver tags (e.g., 1.2.3)
+name: Release
+
+on:
+  push:
+    tags:
+      - "*.*.*" # matches tags like 1.2.3 (no leading "v")
+  workflow_dispatch:
+
+env:
+  PACKAGE_NAME: data-gradients
+  PACKAGE_DIR: src
+
+jobs:
+  release:
+    name: Publish to PyPI and create GitHub Release
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the tagged commit
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Build distributions
+        run: uv build
+
+      - name: Publish to PyPI (uv publish)
+        # Requires: repository secret PYPI_API_TOKEN
+        env:
+          UV_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          # publish will use UV_PYPI_TOKEN; uv publish supports token via env or flag
+          uv publish --token "${UV_PYPI_TOKEN}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            Automatic release for version ${{ github.ref_name }}.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
