@@ -1,27 +1,71 @@
-## Data-Gradients configuration for black/mypy/isort etc tools.
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-use_parentheses = true
-ensure_newline_before_comments = true
-line_length = 160
+[project]
+name = "data-gradients"
+version = "0.3.2"
+description = "Modernized Computer Vision dataset analysis and profiling toolkit."
+readme = "README.md"
+authors = [
+    { name = "Yann Nóbrega", email = "yann.nicholas@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "fonttools>=4.61.1",
+    "hydra-core>=1.3.2",
+    "imagededup>=0.3.3.post2",
+    "jinja2>=3.1.6",
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.1",
+    "omegaconf>=2.3.0",
+    "opencv-python>=4.13.0.90",
+    "pillow>=12.1.0",
+    "platformdirs>=4.5.1",
+    "plotly>=6.5.2",
+    "pydantic>=2.12.5",
+    "pygments>=2.19.2",
+    "rapidfuzz>=3.14.3",
+    "scipy>=1.17.0",
+    "seaborn>=0.13.2",
+    "streamlit>=1.53.1",
+    "tensorboard>=2.20.0",
+    "torch>=2.10.0",
+    "torchvision>=0.25.0",
+    "tqdm>=4.67.1",
+    "werkzeug>=3.1.5",
+    "xhtml2pdf>=0.2.17",
+]
 
-## Configuration for Black.
-[tool.black]
-line-length = 160
-target-version = ['py36', 'py37', 'py38', 'py39' ]
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.circleci
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"data_gradients.config" = ["*.yaml", "**/*.yaml"]
+"data_gradients" = ["example.ipynb", "requirements.txt"]
+"data_gradients.assets" = ["images/*.png", "html/*.html", "css/*.css", "text/*.txt"]
+
+[tool.ruff]
+line-length = 144
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "C4"]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["data_gradients"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.14",
+    "ty>=0.0.13",
+]
+test = [
+    "coverage>=7.13.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+]

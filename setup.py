@@ -1,7 +1,7 @@
 # coding: utf-8
 
 """
-    Deci Dataset Analyzer
+Yannngn Dataset Analyzer
 """
 
 from setuptools import setup
@@ -42,10 +42,10 @@ setup(
     name="data-gradients",
     description="DataGradients",
     version=get_version(),
-    author="Deci AI",
-    author_email="rnd@deci.ai",
-    url="https://github.com/Deci-AI/data-gradients",
-    keywords=["Deci", "AI", "Data", "Deep Learning", "Computer Vision", "PyTorch"],
+    author="Yann Nóbrega",
+    author_email="yann.nicholas@gmail.com",
+    url="https://github.com/Yannngn/data-gradients",
+    keywords=["Yannngn", "Yann", "Data", "Deep Learning", "Computer Vision", "PyTorch"],
     install_requires=get_requirements(),
     packages=find_packages(where="./src"),
     package_dir={"": "src"},
