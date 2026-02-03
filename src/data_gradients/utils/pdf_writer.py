@@ -3,7 +3,13 @@ from pathlib import Path
 
 import seaborn
 from jinja2 import Template
-from xhtml2pdf import pisa
+
+try:
+    from xhtml2pdf import pisa
+
+    HAS_PISA = True
+except ImportError:
+    HAS_PISA = False
 
 import data_gradients
 from data_gradients.assets import assets
@@ -76,6 +82,11 @@ class PDFWriter:
         :param results_container: The results container containing the sections and features.
         :param output_filename: The path to the output file.
         """
+        if not HAS_PISA:
+            raise ImportError(
+                "PDF generation requires the 'xhtml2pdf' package. Install it with: pip install data-gradients[pdf] or uv sync --group pdf"
+            )
+
         output_path = Path(output_filename)
         if output_path.suffix != ".pdf":
             raise RuntimeError("filename must end with .pdf")
