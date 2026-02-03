@@ -5,7 +5,7 @@ from jinja2 import Template
 
 from data_gradients.assets import assets
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors import AbstractFeatureExtractor
+from data_gradients.feature_extractors import NoSourceFeatureExtractor
 from data_gradients.feature_extractors.abstract_feature_extractor import Feature
 from data_gradients.utils.data_classes.data_samples import ClassificationSample
 
@@ -16,12 +16,12 @@ class ClassificationBasicStatistics:
     classes_count: int = 0
     classes_in_use: int = 0
     classes: list[int] = dataclasses.field(default_factory=list)
-    images_resolutions: list[int] = dataclasses.field(default_factory=list)
-    med_image_resolution: int = 0
+    images_resolutions: list[tuple[int, int]] = dataclasses.field(default_factory=list)
+    med_image_resolution: str = ""
 
 
 @register_feature_extractor()
-class ClassificationSummaryStats(AbstractFeatureExtractor):
+class ClassificationSummaryStats(NoSourceFeatureExtractor):
     """
     Gathers basic statistical data from the dataset.
 
@@ -34,13 +34,13 @@ class ClassificationSummaryStats(AbstractFeatureExtractor):
         super().__init__()
         self.stats = {"train": ClassificationBasicStatistics(), "val": ClassificationBasicStatistics()}
 
-        self.template = Template(source=assets.html.basic_info_fe_classification)
+        self.template: Template = Template(source=assets.html.basic_info_fe_classification)
 
     def update(self, sample: ClassificationSample):
         basic_stats = self.stats[sample.split]
 
         height, width = sample.image.shape[:2]
-        basic_stats.images_resolutions.append([height, width])
+        basic_stats.images_resolutions.append((height, width))
         basic_stats.num_samples += 1
         basic_stats.classes_count = len(sample.class_names)
         basic_stats.classes.append(sample.class_id)
@@ -57,7 +57,7 @@ class ClassificationSummaryStats(AbstractFeatureExtractor):
                 basic_stats.num_samples = int(basic_stats.num_samples)
 
                 # To support JSON - delete arrays
-                basic_stats.classes = None
+                basic_stats.classes = []
 
         json_res = {k: dataclasses.asdict(v) for k, v in self.stats.items()}
 

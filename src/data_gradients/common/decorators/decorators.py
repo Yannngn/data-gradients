@@ -1,10 +1,13 @@
 import inspect
 from functools import wraps
+from typing import Any, TypeVar
 
 from data_gradients.common.factories.base_factory import AbstractFactory
 
+T = TypeVar("T")
 
-def _assign_tuple(t: tuple, index: int, value):
+
+def _assign_tuple(t: tuple, index: int, value: Any) -> tuple:
     return tuple([x if i != index else value for i, x in enumerate(t)])
 
 

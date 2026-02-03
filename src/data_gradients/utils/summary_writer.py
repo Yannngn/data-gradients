@@ -1,11 +1,12 @@
 import logging
-import os
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 import data_gradients
 from data_gradients.assets import assets
 from data_gradients.utils.pdf_writer import PDFWriter, ResultsContainer
-from data_gradients.utils.utils import copy_files_by_list, write_json
+from data_gradients.utils.utils import PathLike, copy_files_by_list, write_json
 
 logger = logging.getLogger(__name__)
 
@@ -13,23 +14,22 @@ logger = logging.getLogger(__name__)
 class SummaryWriter:
     """Manager responsible for logging the Report (e.g. PDF), feature stats, errors and config cache."""
 
-    def __init__(self, report_title: str, report_subtitle: str | None = None, log_dir: str | None = None):
+    def __init__(self, report_title: str, report_subtitle: str | None = None, log_dir: PathLike | None = None):
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         self.run_name = report_title.replace(" ", "_")
 
         # DIRECTORIES
         if log_dir is None:
-            log_dir = os.path.join(os.getcwd(), "logs", self.run_name)
+            log_dir = Path.cwd() / "logs" / self.run_name
             logger.info(f"`log_dir` was not set, so the logs will be saved in {log_dir}")
-        self.log_dir = log_dir  # Main logging directory. Latest run results will be saved here.
-        self.archive_dir = os.path.join(log_dir, "archive_" + timestamp)  # A duplicate of the results will be archived here as well
-        os.makedirs(self.archive_dir, exist_ok=True)
+        self.log_dir = Path(log_dir)  # Main logging directory. Latest run results will be saved here.
+        self.archive_dir = self.log_dir / ("archive_" + timestamp)  # A duplicate of the results will be archived here as well
+        self.archive_dir.mkdir(parents=True, exist_ok=True)
 
         # OUTPUT PATH
-        self.report_archive_path = os.path.join(self.archive_dir, "Report.pdf")
-        self.summary_archive_path = os.path.join(self.archive_dir, "summary.json")
-        self.errors_path = os.path.join(self.archive_dir, "errors.json")
-
+        self.report_archive_path = self.archive_dir / "Report.pdf"
+        self.summary_archive_path = self.archive_dir / "summary.json"
+        self.errors_path = self.archive_dir / "errors.json"
         report_subtitle = report_subtitle or datetime.strftime(datetime.now(), "%m:%H %B %d, %Y")
         self._pdf_writer = PDFWriter(title=report_title, subtitle=report_subtitle, html_template=assets.html.doc_template)
 
@@ -42,8 +42,8 @@ class SummaryWriter:
         }
         self._data_config_dict = {}
         self._pdf_summary = ResultsContainer()
-        self._features_stats: list[dict[str, dict]] = []
-        self._errors: list[dict[str, list[str]]] = []
+        self._features_stats: list[dict[str, Any]] = []
+        self._errors: list[dict[str, Any]] = []
 
     def set_pdf_summary(self, pdf_summary: ResultsContainer):
         self._pdf_summary = pdf_summary
@@ -51,7 +51,7 @@ class SummaryWriter:
     def set_data_config(self, data_config_dict: dict):
         self._data_config_dict = data_config_dict
 
-    def add_feature_stats(self, title: str, stats: dict[str, dict]):
+    def add_feature_stats(self, title: str, stats: dict[str, Any] | list):
         self._features_stats.append({"title": title, "stats": stats})
 
     def add_error(self, title: str, error: list[str]):
@@ -85,5 +85,5 @@ class SummaryWriter:
         copy_files_by_list(
             source_dir=self.archive_dir,
             dest_dir=self.log_dir,
-            file_list=[os.path.basename(self.summary_archive_path), os.path.basename(self.report_archive_path)],
+            file_list=[self.summary_archive_path.name, self.report_archive_path.name],
         )

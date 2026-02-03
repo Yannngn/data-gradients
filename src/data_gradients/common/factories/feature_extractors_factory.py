@@ -1,5 +1,5 @@
-from .base_factory import BaseFactory
 from ..registry.registry import FEATURE_EXTRACTORS
+from .base_factory import BaseFactory
 
 
 class FeatureExtractorsFactory(BaseFactory):

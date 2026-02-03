@@ -1,6 +1,13 @@
-from typing import Union, Mapping, Dict, List
-from rapidfuzz import process, fuzz
+from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from typing import Any, TypeAlias
+
+from rapidfuzz import fuzz, process
+
 from data_gradients.utils.utils import fuzzy_keys, fuzzy_str, get_fuzzy_mapping_param
+
+ConfigDictType: TypeAlias = dict[str, dict[str, Any]]
+ConfigType: TypeAlias = str | ConfigDictType | list[str | ConfigDictType]
 
 
 class UnknownTypeException(Exception):
@@ -12,23 +19,30 @@ class UnknownTypeException(Exception):
     :param message:         Explanation of the error
     """
 
-    def __init__(self, unknown_type: str, choices: List, message: str = None):
+    def __init__(self, unknown_type: str, choices: list, message: str | None = None):
         message = message or f"Unknown object type: {unknown_type} in configuration. valid types are: {choices}"
         err_msg_tip = ""
+
         if isinstance(unknown_type, str):
-            choice, score, _ = process.extractOne(unknown_type, choices, scorer=fuzz.WRatio)
-            if score > 70:
-                err_msg_tip = f"\n Did you mean: {choice}?"
+            result = process.extractOne(unknown_type, choices, scorer=fuzz.WRatio)
+            if isinstance(result, tuple):
+                choice, score, _ = result
+
+                if score > 70:
+                    err_msg_tip = f"\n Did you mean: {choice}?"
+
         self.message = message + err_msg_tip
+
         super().__init__(self.message)
 
 
-class AbstractFactory:
+class AbstractFactory(ABC):
     """
     An abstract factory to generate an object from a string, a dictionary or a list
     """
 
-    def get(self, conf: Union[str, dict, list]):
+    @abstractmethod
+    def get(self, conf: ConfigType):
         """
         Get an instantiated object.
             :param conf: a configuration
@@ -46,13 +60,13 @@ class BaseFactory(AbstractFactory):
     The basic factory fo a *single* object generation.
     """
 
-    def __init__(self, type_dict: Dict[str, type]):
+    def __init__(self, type_dict: dict[str, type]):
         """
         :param type_dict: a dictionary mapping a name to a type
         """
         self.type_dict = type_dict
 
-    def get(self, conf: Union[str, dict]):
+    def get(self, conf: ConfigType):
         """
         Get an instantiated object.
            :param conf: a configuration
@@ -64,11 +78,13 @@ class BaseFactory(AbstractFactory):
         if isinstance(conf, str):
             if conf in self.type_dict:
                 return self.type_dict[conf]()
-            elif fuzzy_str(conf) in fuzzy_keys(self.type_dict):
+
+            if fuzzy_str(conf) in fuzzy_keys(self.type_dict):
                 return get_fuzzy_mapping_param(conf, self.type_dict)()
-            else:
-                raise UnknownTypeException(conf, list(self.type_dict.keys()))
-        elif isinstance(conf, Mapping):
+
+            raise UnknownTypeException(conf, list(self.type_dict.keys()))
+
+        if isinstance(conf, Mapping):
             if len(conf.keys()) > 1:
                 raise RuntimeError(
                     "Malformed object definition in configuration. Expecting either a string of object type or a single entry dictionary"
@@ -80,9 +96,12 @@ class BaseFactory(AbstractFactory):
             _params = list(conf.values())[0]  # A DICT CONTAINING THE PARAMETERS FOR INIT
             if _type in self.type_dict:
                 return self.type_dict[_type](**_params)
-            elif fuzzy_str(_type) in fuzzy_keys(self.type_dict):
+            if fuzzy_str(_type) in fuzzy_keys(self.type_dict):
                 return get_fuzzy_mapping_param(_type, self.type_dict)(**_params)
-            else:
-                raise UnknownTypeException(_type, list(self.type_dict.keys()))
-        else:
-            return conf
+
+            raise UnknownTypeException(_type, list(self.type_dict.keys()))
+
+        return conf
+
+    #
+    #

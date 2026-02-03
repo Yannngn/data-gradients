@@ -1,17 +1,13 @@
-from abc import ABC
-from typing import Tuple, List
-
 import torch
 
 from data_gradients.dataset_adapters.config.data_config import DataConfig
-
+from data_gradients.dataset_adapters.config.typing_utils import SupportedDataType
 from data_gradients.dataset_adapters.formatters.base import BatchFormatter
 from data_gradients.dataset_adapters.output_mapper.dataset_output_mapper import DatasetOutputMapper
-from data_gradients.dataset_adapters.config.typing_utils import SupportedDataType
 from data_gradients.utils.data_classes.data_samples import Image
 
 
-class BaseDatasetAdapter(ABC):
+class BaseDatasetAdapter:
     """Wrap a dataset and applies transformations on data points.
     It acts as a base class for specific dataset adapters that cater to specific data structures.
 
@@ -31,7 +27,7 @@ class BaseDatasetAdapter(ABC):
         self.dataset_output_mapper = dataset_output_mapper
         self.formatter = formatter
 
-    def adapt(self, data: SupportedDataType) -> Tuple[List[Image], torch.Tensor]:
+    def adapt(self, data: SupportedDataType) -> tuple[list[Image], torch.Tensor | list[torch.Tensor]]:
         """Adapt an input data (Batch or Sample) into a standard format.
 
         :param data:     Input data to be adapted.

@@ -2,8 +2,9 @@ import unittest
 
 import numpy as np
 
+from data_gradients.dataset_adapters.formatters.utils import Uint8ImageFormat
 from data_gradients.feature_extractors.common.image_resolution import ImagesResolution
-from data_gradients.utils.data_classes.data_samples import ImageSample
+from data_gradients.utils.data_classes.data_samples import Image, ImageSample
 from data_gradients.utils.data_classes.image_channels import ImageChannels
 from data_gradients.visualize.seaborn_renderer import SeabornRenderer
 
@@ -15,64 +16,88 @@ class ImageResolutionTest(unittest.TestCase):
         train_sample = ImageSample(
             sample_id="sample_0",
             split="train",
-            image=np.zeros((50, 100, 3), dtype=np.uint8),
-            image_channels=ImageChannels.from_str("RGB"),
+            image=Image(
+                data=np.zeros((50, 100, 3), dtype=np.uint8),
+                format=Uint8ImageFormat(),
+                channels=ImageChannels.from_str("RGB"),
+            ),
         )
         self.extractor.update(train_sample)
 
         train_sample = ImageSample(
             sample_id="sample_1",
             split="train",
-            image=np.zeros((150, 250, 3), dtype=np.uint8),
-            image_channels=ImageChannels.from_str("RGB"),
+            image=Image(
+                data=np.zeros((150, 250, 3), dtype=np.uint8),
+                format=Uint8ImageFormat(),
+                channels=ImageChannels.from_str("RGB"),
+            ),
         )
         self.extractor.update(train_sample)
 
         train_sample = ImageSample(
             sample_id="sample_2",
             split="train",
-            image=np.zeros((150, 200, 3), dtype=np.uint8),
-            image_channels=ImageChannels.from_str("RGB"),
+            image=Image(
+                data=np.zeros((150, 200, 3), dtype=np.uint8),
+                format=Uint8ImageFormat(),
+                channels=ImageChannels.from_str("RGB"),
+            ),
         )
         self.extractor.update(train_sample)
 
         train_sample = ImageSample(
             sample_id="sample_3",
             split="train",
-            image=np.zeros((150, 300, 3), dtype=np.uint8),
-            image_channels=ImageChannels.from_str("RGB"),
+            image=Image(
+                data=np.zeros((150, 300, 3), dtype=np.uint8),
+                format=Uint8ImageFormat(),
+                channels=ImageChannels.from_str("RGB"),
+            ),
         )
         self.extractor.update(train_sample)
 
         train_sample = ImageSample(
             sample_id="sample_3",
             split="train",
-            image=np.zeros((200, 200, 3), dtype=np.uint8),
-            image_channels=ImageChannels.from_str("RGB"),
+            image=Image(
+                data=np.zeros((200, 200, 3), dtype=np.uint8),
+                format=Uint8ImageFormat(),
+                channels=ImageChannels.from_str("RGB"),
+            ),
         )
         self.extractor.update(train_sample)
 
         valid_sample = ImageSample(
             sample_id="sample_4",
             split="valid",
-            image=np.zeros((100, 100, 3), dtype=np.uint8),
-            image_channels=ImageChannels.from_str("RGB"),
+            image=Image(
+                data=np.zeros((100, 100, 3), dtype=np.uint8),
+                format=Uint8ImageFormat(),
+                channels=ImageChannels.from_str("RGB"),
+            ),
         )
         self.extractor.update(valid_sample)
 
         valid_sample = ImageSample(
             sample_id="sample_4",
             split="valid",
-            image=np.zeros((150, 150, 3), dtype=np.uint8),
-            image_channels=ImageChannels.from_str("RGB"),
+            image=Image(
+                data=np.zeros((150, 150, 3), dtype=np.uint8),
+                format=Uint8ImageFormat(),
+                channels=ImageChannels.from_str("RGB"),
+            ),
         )
         self.extractor.update(valid_sample)
 
         valid_sample = ImageSample(
             sample_id="sample_4",
             split="valid",
-            image=np.zeros((200, 250, 3), dtype=np.uint8),
-            image_channels=ImageChannels.from_str("RGB"),
+            image=Image(
+                data=np.zeros((200, 250, 3), dtype=np.uint8),
+                format=Uint8ImageFormat(),
+                channels=ImageChannels.from_str("RGB"),
+            ),
         )
         self.extractor.update(valid_sample)
 
@@ -104,13 +129,21 @@ class ImageResolutionTest(unittest.TestCase):
         }
 
         for col in ("width", "height"):
-            for key in output_json[col].keys_to_reach_object():
-                self.assertEqual(round(output_json[col][key], 4), round(expected_json[col][key], 4))
+            if isinstance(output_json, dict):
+                for key in output_json[col].keys_to_reach_object():
+                    self.assertEqual(round(output_json[col][key], 4), round(expected_json[col][key], 4))
+            elif isinstance(output_json, list):
+                for item in output_json:
+                    for key in item[col].keys_to_reach_object():
+                        self.assertEqual(round(item[col][key], 4), round(expected_json[col][key], 4))
 
     def test_plot(self):
         feature = self.extractor.aggregate()
         sns = SeabornRenderer()
-        f = sns.render(feature.data, feature.plot_options)
+
+        f = sns.render(feature.data, feature.plot_options)  # type: ignore
+        if f is None:
+            raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
         f.show()
 
 

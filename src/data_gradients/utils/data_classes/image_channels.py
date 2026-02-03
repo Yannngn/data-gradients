@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List
 
 import cv2
 import numpy as np
@@ -9,10 +8,11 @@ class ImageChannels(ABC):
     """Represent the channels of an image.
 
     >> ImageChannels.from_str("LAB") # This represents the format of LAB color space.
-    >> ImageChannels.from_str("RGBO") # This represents the format of an image with (R, G, B, ?) channels, where `?` can be any other channel (Depth, ...)
+    >> ImageChannels.from_str("RGBO")
+        # This represents the format of an image with (R, G, B, ?) channels, where `?` can be any other channel (Depth, ...)
     """
 
-    def __init__(self, channels_str: str, idx_to_visualize: slice, channel_names: List[str]):
+    def __init__(self, channels_str: str, idx_to_visualize: slice, channel_names: list[str]):
         """
         :param channels_str: The string representation of the channels. `RGB`, `LAB`, `RGBO`, ... Each channel is represented by a letter.
         """
@@ -176,7 +176,7 @@ class GrayscaleChannels(ImageChannels):
 
         super().__init__(
             channels_str=channels_str,
-            idx_to_visualize=slice(format_idx, format_idx + 3),
+            idx_to_visualize=slice(format_idx, format_idx + 1),
             channel_names=channel_names,
         )
 
@@ -186,7 +186,11 @@ class GrayscaleChannels(ImageChannels):
         return channels_str.count("G") == 1 and channels_str.count("O") == len(channels_str) - 1
 
     def convert_image_to_rgb(self, image: np.ndarray) -> np.ndarray:
-        return cv2.cvtColor(self.get_channels_to_visualize(image), cv2.COLOR_GRAY2RGB)
+        arr = self.get_channels_to_visualize(image)
+        # Ensure a 2D single-channel image is passed to OpenCV
+        if arr.ndim == 3 and arr.shape[2] == 1:
+            arr = arr[:, :, 0]
+        return cv2.cvtColor(arr, cv2.COLOR_GRAY2RGB)
 
     def compute_mean_image_intensity(self, image: np.ndarray) -> float:
         return image.mean()
@@ -237,11 +241,34 @@ class OtherChannels(ImageChannels):
     def validate_channels(channels_str: str) -> bool:
         return channels_str.count("O") == len(channels_str)
 
-    def convert_image_to_rgb(self, image: np.ndarray) -> np.ndarray:
-        return None
-
     def compute_mean_image_intensity(self, image: np.ndarray) -> float:
         return image.mean()
+
+    def convert_image_to_rgb(self, image: np.ndarray) -> np.ndarray:
+        """
+        Fallback conversion for unknown channel formats.
+
+        - If the image has 3 or more channels, return the first three channels.
+        - If the image has 2 channels, use the first two and add a zero channel as the third.
+        - If the image has 1 channel, convert grayscale to RGB.
+        """
+        # Ensure image has channel dimension
+        if image.ndim == 2:
+            # single channel HxW -> convert to RGB
+            return cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+
+        h, w, c = image.shape
+        if c >= 3:
+            return image[:, :, :3]
+        if c == 2:
+            ch1 = image[:, :, 0]
+            ch2 = image[:, :, 1]
+            ch3 = np.zeros_like(ch1)
+            return np.stack([ch1, ch2, ch3], axis=2)
+
+        # Fallback: replicate first channel to RGB
+        ch = image[:, :, 0]
+        return np.stack([ch, ch, ch], axis=2)
 
 
 def image_channel_instance_factory(channels_str: str) -> ImageChannels:
@@ -269,6 +296,7 @@ def image_channel_instance_factory(channels_str: str) -> ImageChannels:
     Notes:
     - The order of channels in the string representation is significant and should match the order of channels in the image.
     """
+    channels_str = channels_str.upper()  # Force Uppercase
 
     # Check which channel representation fits the given string.
     potential_channel_classes = [

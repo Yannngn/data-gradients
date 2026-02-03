@@ -1,13 +1,13 @@
-from typing import Iterable, Iterator
 import time
+from collections.abc import Iterable, Iterator
 
 import numpy as np
 
-from data_gradients.dataset_adapters.config.typing_utils import SupportedDataType
-from data_gradients.utils.data_classes import DetectionSample
-from data_gradients.sample_preprocessor.base_sample_preprocessor import AbstractSamplePreprocessor
-from data_gradients.dataset_adapters.detection_adapter import DetectionDatasetAdapter
 from data_gradients.dataset_adapters.config import DetectionDataConfig
+from data_gradients.dataset_adapters.config.typing_utils import SupportedDataType
+from data_gradients.dataset_adapters.detection_adapter import DetectionDatasetAdapter
+from data_gradients.sample_preprocessor.base_sample_preprocessor import AbstractSamplePreprocessor
+from data_gradients.utils.data_classes import DetectionSample
 
 
 class DetectionSamplePreprocessor(AbstractSamplePreprocessor):
@@ -20,17 +20,17 @@ class DetectionSamplePreprocessor(AbstractSamplePreprocessor):
         for data in dataset:
             images, labels = self.adapter.adapt(data)
 
-            for image, target in zip(images, labels):
+            for image, target in zip(images, labels, strict=False):
                 target = target.cpu().numpy().astype(int)
                 class_ids, bboxes_xyxy = target[:, 0], target[:, 1:]
 
                 # TODO: Abstract the fact the images are channel last/first and add it to the Image class
-                image.data = np.uint8(np.transpose(image.as_numpy(), (1, 2, 0)))
+                image.data = np.transpose(image.as_numpy(), (1, 2, 0)).astype(np.uint8)
                 yield DetectionSample(
                     image=image,
                     class_ids=class_ids,
                     bboxes_xyxy=bboxes_xyxy,
-                    class_names=self.data_config.get_class_names(),
+                    class_names=self.data_config.get_class_names(),  # type: ignore
                     split=split,
                     sample_id=str(time.time()),
                 )

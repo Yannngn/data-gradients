@@ -1,5 +1,6 @@
 import os
 from collections.abc import Iterable
+from pathlib import Path
 
 from data_gradients.common.registry.registry import register_feature_extractor
 from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
@@ -64,7 +65,7 @@ class ImageDuplicates(AbstractFeatureExtractor):
          - Supported image formats: 'JPEG', 'PNG', 'BMP', 'MPO', 'PPM', 'TIFF', 'GIF', 'SVG', 'PGM', 'PBM', 'WEBP'.
     """
 
-    def __init__(self, train_image_dir: str | None = None, valid_image_dir: str | None = None):
+    def __init__(self, train_image_dir: str | Path | None = None, valid_image_dir: str | Path | None = None):
         """
         :param train_image_dir: str = None, The directory containing all train images. When None, will ask the user
             using prompt for input.
@@ -76,8 +77,8 @@ class ImageDuplicates(AbstractFeatureExtractor):
         self.train_dups = None
         self.valid_dups = None
         self.intersection_dups = None
-        self.train_image_dir = train_image_dir
-        self.valid_image_dir = valid_image_dir
+        self.train_image_dir = Path(train_image_dir) if train_image_dir is not None else None
+        self.valid_image_dir = Path(valid_image_dir) if valid_image_dir is not None else None
 
     def setup_data_sources(self, train_data: Iterable, val_data: Iterable):
         """
@@ -97,8 +98,10 @@ class ImageDuplicates(AbstractFeatureExtractor):
 
     def _get_image_dir(self, split: str) -> str:
         p = input(f"Image duplicates extraction: please enter the full path to the directory containing all {split} images >>> \n")
+
         if not os.path.exists(p):
             raise ValueError(f"Path to the directory containing all {split} images does not exist.")
+
         return p
 
     def update(self, sample: ImageSample):
@@ -125,8 +128,8 @@ class ImageDuplicates(AbstractFeatureExtractor):
         # ADD PATH PREFIXES, SO WE CAN DIFFER TRAIN/VALIDATION AFTER CALLING find_duplicates
         # AND AVOID COLLISIONS IF SAME FNAMES ARE USED BETWEEN THE DATASETS
         # encodings = { IMAGE_X_PATH: IMAGE_X_ENCODING,...}
-        train_encodings = {str(os.path.join(self.train_image_dir, k)): v for k, v in train_encodings.items()}
-        valid_encodings = {str(os.path.join(self.valid_image_dir, k)): v for k, v in valid_encodings.items()}
+        train_encodings = {str(self.train_image_dir / k): v for k, v in train_encodings.items()}
+        valid_encodings = {str(self.valid_image_dir / k): v for k, v in valid_encodings.items()}
 
         # PASS ALL ENCODINGS
         all_encodings = {**train_encodings, **valid_encodings}
@@ -163,20 +166,25 @@ class ImageDuplicates(AbstractFeatureExtractor):
 
             # IF THE CLIQUE HAS AT LEAST 2 PATHS IN THE TRAIN/VALIDATION DIR -
             # ADD IT TO train_dups/valid_dups AFTER FILTERING PATHS OUTSIDE THE TRAIN/VALIDATION DIR.
-            if self._is_train_dup(dup_clique):
-                train_dups.append([d for d in dup_clique if d.startswith(self.train_image_dir)])
-            if self._is_valid_dup(dup_clique):
-                valid_dups.append([d for d in dup_clique if d.startswith(self.valid_image_dir)])
+            if self._is_train_dup(dup_clique) and self.train_image_dir is not None:
+                train_dups.append([d for d in dup_clique if d.startswith(str(self.train_image_dir))])
+
+            if self._is_valid_dup(dup_clique) and self.valid_image_dir is not None:
+                valid_dups.append([d for d in dup_clique if d.startswith(str(self.valid_image_dir))])
 
             # IF THE CLIQUE HAS IT LEAST ONE PATH IN EACH - ADD IT TO intersection_dups
             if self._is_intersection_dup(dup_clique):
                 intersection_dups.append(dup_clique)
 
         self.train_dups, self.valid_dups, self.intersection_dups = train_dups, valid_dups, intersection_dups
-        self.train_dups_appearences = self._count_dir_dup_appearences(self.train_dups, self.train_image_dir)
-        self.validation_dups_appearences = self._count_dir_dup_appearences(self.valid_dups, self.valid_image_dir)
-        self.intersection_train_appearnces = self._count_dir_dup_appearences(self.intersection_dups, self.train_image_dir)
-        self.intersection_val_appearnces = self._count_dir_dup_appearences(self.intersection_dups, self.valid_image_dir)
+        if self.train_image_dir is not None:
+            self.train_dups_appearences = self._count_dir_dup_appearences(self.train_dups, self.train_image_dir)
+        if self.valid_image_dir is not None:
+            self.validation_dups_appearences = self._count_dir_dup_appearences(self.valid_dups, self.valid_image_dir)
+        if self.train_image_dir is not None:
+            self.intersection_train_appearences = self._count_dir_dup_appearences(self.intersection_dups, self.train_image_dir)
+        if self.valid_image_dir is not None:
+            self.intersection_val_appearences = self._count_dir_dup_appearences(self.intersection_dups, self.valid_image_dir)
 
     @staticmethod
     def _is_in_dup_clique(sample: str, dup_clique_list: list[list[str]]) -> bool:
@@ -186,10 +194,10 @@ class ImageDuplicates(AbstractFeatureExtractor):
         :param sample: str, an image path
         :param dup_clique_list: List[List[str]], list of duplicate image path cliques (lists).
         """
-        return any([sample in d for d in dup_clique_list])
+        return any(sample in d for d in dup_clique_list)
 
     @staticmethod
-    def _make_dup_clique(dup_key: str, dups: list[str]):
+    def _make_dup_clique(dup_key: str, dups: dict[str, list[str]]) -> list[str]:
         dup_clique = [dup_key] + dups[dup_key]
         return dup_clique
 
@@ -199,7 +207,7 @@ class ImageDuplicates(AbstractFeatureExtractor):
 
         :param dup_clique: List[str], list of duplicated image paths
         """
-        return len([d for d in dup_clique if d.startswith(self.train_image_dir)]) > 1
+        return len([d for d in dup_clique if d.startswith(str(self.train_image_dir))]) > 1
 
     def _is_valid_dup(self, dup_clique: list[str]) -> bool:
         """
@@ -207,7 +215,7 @@ class ImageDuplicates(AbstractFeatureExtractor):
 
         :param dup_clique: List[str], list of duplicated image paths
         """
-        return len([d for d in dup_clique if d.startswith(self.valid_image_dir)]) > 1
+        return len([d for d in dup_clique if d.startswith(str(self.valid_image_dir))]) > 1
 
     def _is_intersection_dup(self, dup_clique: list[str]) -> bool:
         """
@@ -216,8 +224,8 @@ class ImageDuplicates(AbstractFeatureExtractor):
         :param dup_clique: List[str], list of duplicated image paths
         """
         return (
-            len([d for d in dup_clique if d.startswith(self.train_image_dir)]) > 0
-            and len([d for d in dup_clique if d.startswith(self.valid_image_dir)]) > 0
+            len([d for d in dup_clique if d.startswith(str(self.train_image_dir))]) > 0
+            and len([d for d in dup_clique if d.startswith(str(self.valid_image_dir))]) > 0
         )
 
     @staticmethod
@@ -227,12 +235,13 @@ class ImageDuplicates(AbstractFeatureExtractor):
         """
         return sum([len(d) for d in dups])
 
-    def _count_dir_dup_appearences(self, dups: list[list[str]], dir: str) -> int:
+    def _count_dir_dup_appearences(self, dups: list[list[str]], dir_path: str | Path) -> int:
         """
         Counts the duplicate appearences inside dir = sum of the sizes of all
          duplicate cliques in dups after filtering all paths not in dir.
         """
-        return self._count_dup_appearences(list(map(lambda dup: [d for d in dup if d.startswith(dir)], dups)))
+        dir_path = str(dir_path)
+        return self._count_dup_appearences([[d for d in dup if d.startswith(dir_path)] for dup in dups])
 
     def aggregate(self) -> Feature:
         self._find_duplicates()
@@ -253,14 +262,14 @@ class ImageDuplicates(AbstractFeatureExtractor):
     def _generate_description(self) -> str:
         if self.train_dups:
             desc = self._get_split_description(self.train_dups, "Train", self.train_dups_appearences)
-            if self.valid_image_dir is not None:
+            if self.valid_image_dir is not None and self.valid_dups is not None and self.intersection_dups is not None:
                 desc += self._get_split_description(self.valid_dups, "Validation", self.validation_dups_appearences)
                 desc += f"\n\nThere are {len(self.intersection_dups)} duplicates between train and validation."
                 if len(self.intersection_dups):
                     desc = desc.replace(
                         "train and validation.",
-                        f"train and validation appearing {self.intersection_train_appearnces} times in the train image directory,"
-                        f" and {self.intersection_val_appearnces} times in the validation image directory.",
+                        f"train and validation appearing {self.intersection_train_appearences} times in the train image directory,"
+                        f" and {self.intersection_val_appearences} times in the validation image directory.",
                     )
 
             else:

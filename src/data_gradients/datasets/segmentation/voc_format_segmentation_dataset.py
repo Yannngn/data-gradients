@@ -1,13 +1,16 @@
-import numpy as np
-from typing import Sequence, Optional
+from collections.abc import Iterable
 
+import numpy as np
+
+from data_gradients.dataset_adapters.config.typing_utils import ClassNamesType
 from data_gradients.datasets.base_dataset import BaseImageLabelDirectoryDataset
 from data_gradients.datasets.FolderProcessor import DEFAULT_IMG_EXTENSIONS
-from data_gradients.datasets.utils import load_image_rgb
+from data_gradients.datasets.utils import PathLike, load_image_rgb
 
 
 class VOCFormatSegmentationDataset(BaseImageLabelDirectoryDataset):
-    """The VOC format Segmentation Dataset supports datasets where labels are stored as images, with each color in the image representing a different class.
+    """The VOC format Segmentation Dataset supports datasets where labels are stored as
+    images, with each color in the image representing a different class.
 
     #### Expected folder structure
     Similar to the VOCFormatDetectionDataset, this class also expects certain folder structures. For example:
@@ -80,23 +83,24 @@ class VOCFormatSegmentationDataset(BaseImageLabelDirectoryDataset):
 
     def __init__(
         self,
-        root_dir: str,
-        images_subdir: str,
-        labels_subdir: str,
-        class_names: Sequence[str],
-        color_map: Sequence[Sequence[int]],
-        config_path: Optional[str] = None,
+        root_dir: PathLike,
+        images_subdir: PathLike,
+        labels_subdir: PathLike,
+        class_names: ClassNamesType,
+        color_map: Iterable[Iterable[int]],
+        config_path: PathLike | None = None,
         verbose: bool = False,
-        image_extensions: Sequence[str] = DEFAULT_IMG_EXTENSIONS,
-        label_extensions: Sequence[str] = DEFAULT_IMG_EXTENSIONS,
+        image_extensions: Iterable[str] = DEFAULT_IMG_EXTENSIONS,
+        label_extensions: Iterable[str] = DEFAULT_IMG_EXTENSIONS,
     ):
         """
         :param root_dir:            Where the data is stored.
         :param images_subdir:       Local path to directory that includes all the images. Path relative to `root_dir`.
         :param labels_subdir:       Local path to directory that includes all the labels. Path relative to `root_dir`.
-        :param class_names:         List of class names. This is required to be able to parse the class names into class ids.
+        :param class_names:         Iterable of class names. This is required to be able to parse the class names into class ids.
         :param color_map:           List of RGB colors associated with each class.
-                                    The color of each pixel in the label images will be compared to this list to determine the class of the pixel.
+                                    The color of each pixel in the label images will be
+                                    compared to this list to determine the class of the pixel.
         :param config_path:         Path to an optional config file. This config file should contain the list of file ids to include.
                                     If None, all the available images and labels will be loaded.
         :param verbose:             Whether to show extra information during loading.
@@ -115,7 +119,7 @@ class VOCFormatSegmentationDataset(BaseImageLabelDirectoryDataset):
         self.class_names = class_names
         self.color_map = color_map
 
-    def load_labels(self, path: str) -> np.ndarray:
+    def load_labels(self, path: PathLike) -> np.ndarray:
         """Load a label image and convert it into a 2D array where each value represents the class of the pixel.
 
         :param path:    Path to the label image file.
@@ -127,4 +131,5 @@ class VOCFormatSegmentationDataset(BaseImageLabelDirectoryDataset):
         for class_idx, color in enumerate(self.color_map):
             matching_pixels = np.where(np.all(mask == color, axis=-1))  # Find where in the mask this color appears
             classes[matching_pixels] = class_idx  # Set the class label for these pixels
+        return classes
         return classes

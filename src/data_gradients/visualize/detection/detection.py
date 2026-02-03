@@ -34,7 +34,7 @@ def draw_bboxes(image: np.ndarray, bboxes_xyxy: np.ndarray, bboxes_ids: np.ndarr
 
         image = draw_bbox(
             image=image,
-            color=color,
+            color=color,  # type: ignore[arg-type]
             box_thickness=2,
             x1=x1,
             y1=y1,
@@ -44,7 +44,7 @@ def draw_bboxes(image: np.ndarray, bboxes_xyxy: np.ndarray, bboxes_ids: np.ndarr
 
     image = resize_and_align_bottom_center(image, target_shape=(600, 600))
 
-    canvas = draw_legend_on_canvas(image=image, class_color_tuples=classes_in_image_with_color)
+    canvas = draw_legend_on_canvas(image=image, class_color_tuples=classes_in_image_with_color)  # type: ignore[arg-type]
     image = np.concatenate((image, canvas), axis=0)
 
     return image

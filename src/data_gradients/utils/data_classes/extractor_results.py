@@ -1,9 +1,11 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from typing import Any
+
 import matplotlib.pyplot as plt
 import numpy as np
-
-from typing import List, Dict
-from abc import ABC, abstractmethod
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 
 @dataclass
@@ -20,10 +22,10 @@ class VisualizationResults(ABC):
 
 @dataclass
 class HistogramResults(VisualizationResults):
-    bin_names: List = field(default_factory=list)
-    bin_values: List = field(default_factory=list)
+    bin_names: list = field(default_factory=list)
+    bin_values: list = field(default_factory=list)
 
-    values_to_log: List = field(default_factory=list)
+    values_to_log: list = field(default_factory=list)
 
     plot: str = ""
     split: str = ""
@@ -42,11 +44,12 @@ class HistogramResults(VisualizationResults):
         write_bar_plot(ax=ax, results=self)
 
     @property
-    def json_values(self) -> Dict[str, float]:
+    def json_values(self) -> dict[str, Any]:
         data = dict(
             zip(
                 self.bin_names,
                 self.values_to_log if self.values_to_log else self.bin_values,
+                strict=False,
             )
         )
         return {self.split: data}
@@ -54,29 +57,30 @@ class HistogramResults(VisualizationResults):
 
 @dataclass
 class HeatMapResults(HistogramResults):
-    x: List = field(default_factory=list)
-    y: List = field(default_factory=list)
-    keys: List = field(default_factory=list)
+    x: list = field(default_factory=list)
+    y: list = field(default_factory=list)
+    keys: list = field(default_factory=list)
 
     n_bins: int = 50
-    range: List = field(default_factory=list)
+    range: list = field(default_factory=list)
     invert: bool = False
 
     def write_plot(self, ax, fig) -> None:
         write_heatmap_plot(ax=ax[int(self.split != "train")], results=self, fig=fig)
 
     @property
-    def json_values(self) -> Dict[str, float]:
+    def json_values(self) -> dict[str, Any]:
         data = dict(
             zip(
                 self.bin_names if self.bin_names else self.keys,
                 self.values_to_log if self.values_to_log else self.bin_values,
+                strict=False,
             )
         )
         return {self.split: data}
 
 
-def write_bar_plot(ax, results: HistogramResults) -> None:
+def write_bar_plot(ax: Axes, results: HistogramResults) -> None:
     if results.ax_grid:
         ax.grid(visible=True, axis="y")
 
@@ -90,7 +94,7 @@ def write_bar_plot(ax, results: HistogramResults) -> None:
     )
 
     plt.xticks(
-        ticks=[label for label in range(number_of_labels)],
+        ticks=list(range(number_of_labels)),
         labels=results.bin_names,
         rotation=results.ticks_rotation,
     )
@@ -112,7 +116,7 @@ def write_bar_plot(ax, results: HistogramResults) -> None:
     ax.legend()
 
 
-def write_heatmap_plot(ax, results: HeatMapResults, fig=None) -> None:
+def write_heatmap_plot(ax: Axes, results: HeatMapResults, fig: Figure | None = None) -> None:
     if results.n_bins == 0:
         # Set to default
         results.n_bins = 10

@@ -1,19 +1,25 @@
-import os
-from typing import Optional, Iterable, Callable, List, Union, Dict
+from collections.abc import Iterable
+from pathlib import Path
 
-import torch
 from torch.utils.data import DataLoader
 
-from data_gradients.dataset_adapters.config.data_config import get_default_cache_dir
-from data_gradients.dataset_adapters.config.typing_utils import SupportedDataType, FeatureExtractorsType
 from data_gradients.config.utils import get_grouped_feature_extractors
-from data_gradients.managers.abstract_manager import AnalysisManagerAbstract
-from data_gradients.utils.summary_writer import SummaryWriter
-from data_gradients.sample_preprocessor.detection_sample_preprocessor import DetectionSamplePreprocessor
-from data_gradients.datasets import COCOFormatDetectionDataset, VOCDetectionDataset, COCODetectionDataset
 from data_gradients.dataset_adapters.config import DetectionDataConfig
-from data_gradients.utils.data_classes.image_channels import ImageChannels
+from data_gradients.dataset_adapters.config.data_config import get_default_cache_dir
+from data_gradients.dataset_adapters.config.typing_utils import (
+    ClassNamesToUseType,
+    ClassNamesType,
+    ExtractorType,
+    SupportedDataType,
+)
 from data_gradients.dataset_adapters.formatters.utils import ImageFormat
+from data_gradients.datasets import COCODetectionDataset, COCOFormatDetectionDataset, VOCDetectionDataset
+from data_gradients.feature_extractors import FeatureExtractorsType
+from data_gradients.managers.abstract_manager import AnalysisManagerAbstract
+from data_gradients.sample_preprocessor.detection_sample_preprocessor import DetectionSamplePreprocessor
+from data_gradients.utils.data_classes.image_channels import ImageChannels
+from data_gradients.utils.summary_writer import SummaryWriter
+from data_gradients.utils.utils import PathLike
 
 
 class DetectionAnalysisManager(AnalysisManagerAbstract):
@@ -26,24 +32,24 @@ class DetectionAnalysisManager(AnalysisManagerAbstract):
         *,
         report_title: str,
         train_data: Iterable[SupportedDataType],
-        val_data: Optional[Iterable[SupportedDataType]] = None,
-        report_subtitle: Optional[str] = None,
-        config_path: Optional[str] = None,
-        feature_extractors: Optional[FeatureExtractorsType] = None,
-        log_dir: Optional[str] = None,
+        val_data: Iterable[SupportedDataType] | None = None,
+        report_subtitle: str | None = None,
+        config_path: str | Path | None = None,
+        feature_extractors: FeatureExtractorsType | None = None,
+        log_dir: str | Path | None = None,
         use_cache: bool = False,
-        class_names: Union[None, List[str], Dict[int, str]] = None,
-        class_names_to_use: Optional[List[str]] = None,
-        n_classes: Optional[int] = None,
-        images_extractor: Optional[Callable[[SupportedDataType], torch.Tensor]] = None,
-        labels_extractor: Optional[Callable[[SupportedDataType], torch.Tensor]] = None,
-        is_batch: Optional[bool] = None,
-        image_channels: Optional[ImageChannels] = None,
-        image_format: Optional[ImageFormat] = None,
-        is_label_first: Optional[bool] = None,
-        bbox_format: Optional[str] = None,
-        batches_early_stop: Optional[int] = None,
-        remove_plots_after_report: Optional[bool] = True,
+        class_names: ClassNamesType | None = None,
+        class_names_to_use: ClassNamesToUseType | None = None,
+        n_classes: int | None = None,
+        images_extractor: ExtractorType | None = None,
+        labels_extractor: ExtractorType | None = None,
+        is_batch: bool | None = None,
+        image_channels: ImageChannels | None = None,
+        image_format: ImageFormat | None = None,
+        is_label_first: bool | None = None,
+        bbox_format: str | None = None,
+        batches_early_stop: int | None = None,
+        remove_plots_after_report: bool | None = True,
     ):
         """
         Constructor of detection manager which controls the analyzer
@@ -55,10 +61,12 @@ class DetectionAnalysisManager(AnalysisManagerAbstract):
         :param n_classes:               Number of classes. Mutually exclusive with `class_names`.
         :param train_data:              Iterable object contains images and labels of the training dataset
         :param val_data:                Iterable object contains images and labels of the validation dataset
-        :param config_path:             Full path the hydra configuration file. If None, the default configuration will be used. Mutually exclusive
-                                        with feature_extractors
-        :param feature_extractors:      One or more feature extractors to use. If None, the default configuration will be used. Mutually exclusive
-                                        with config_path
+        :param config_path:             Full path the hydra configuration file. If None, the default
+                                        configuration will be used.
+                                        Mutually exclusive with feature_extractors
+        :param feature_extractors:      One or more feature extractors to use. If None, the default
+                                        configuration will be used.
+                                        Mutually exclusive with config_path
         :param log_dir:                 Directory where to save the logs. By default uses the current working directory
         :param batches_early_stop:      Maximum number of batches to run in training (early stop)
         :param use_cache:               Whether to use cache or not for the configuration of the data.
@@ -76,7 +84,7 @@ class DetectionAnalysisManager(AnalysisManagerAbstract):
 
         summary_writer = SummaryWriter(report_title=report_title, report_subtitle=report_subtitle, log_dir=log_dir)
 
-        cache_path = os.path.join(get_default_cache_dir(), f"{summary_writer.run_name}.json") if use_cache else None
+        cache_path = Path(get_default_cache_dir()) / f"{summary_writer.run_name}.json" if use_cache else None
         data_config = DetectionDataConfig(
             cache_path=cache_path,
             n_classes=n_classes,
@@ -110,17 +118,17 @@ class DetectionAnalysisManager(AnalysisManagerAbstract):
     def analyze_coco(
         cls,
         *,
-        root_dir: str,
-        year: Union[str, int],
+        root_dir: str | Path,
+        year: str | int,
         report_title: str,
-        report_subtitle: Optional[str] = None,
-        config_path: Optional[str] = None,
-        feature_extractors: Optional[FeatureExtractorsType] = None,
-        log_dir: Optional[str] = None,
+        report_subtitle: str | None = None,
+        config_path: str | Path | None = None,
+        feature_extractors: FeatureExtractorsType | None = None,
+        log_dir: str | Path | None = None,
         use_cache: bool = False,
-        class_names_to_use: Optional[List[str]] = None,
-        batches_early_stop: Optional[int] = None,
-        remove_plots_after_report: Optional[bool] = True,
+        class_names_to_use: list[str] | None = None,
+        batches_early_stop: int | None = None,
+        remove_plots_after_report: bool | None = True,
     ):
         """
         Class method to create a detection manager instance from COCO dataset.
@@ -129,10 +137,10 @@ class DetectionAnalysisManager(AnalysisManagerAbstract):
         :param year:                        Year or version of the COCO dataset.
         :param report_title:                Title of the report. Will be used to save the report.
         :param report_subtitle:             Subtitle of the report.
-        :param config_path:                 Full path the hydra configuration file. If None, the default configuration will be used. Mutually exclusive
-                                            with feature_extractors.
-        :param feature_extractors:          One or more feature extractors to use. If None, the default configuration will be used. Mutually exclusive
-                                            with config_path.
+        :param config_path:                 Full path the hydra configuration file. If None, the default configuration will be used.
+                                            Mutually exclusive with feature_extractors.
+        :param feature_extractors:          One or more feature extractors to use. If None, the default configuration will be used.
+                                            Mutually exclusive with config_path.
         :param log_dir:                     Directory where to save the logs. By default, uses the current working directory.
         :param use_cache:                   Whether to use cache or not for the configuration of the data.
         :param class_names_to_use:          List of class names that we should use for analysis.
@@ -172,21 +180,21 @@ class DetectionAnalysisManager(AnalysisManagerAbstract):
         cls,
         *,
         # DATA
-        root_dir: str,
+        root_dir: PathLike,
         train_images_subdir: str,
-        train_annotation_file_path: str,
+        train_annotation_file_path: PathLike,
         val_images_subdir: str,
-        val_annotation_file_path: str,
+        val_annotation_file_path: PathLike,
         # Report
         report_title: str,
-        report_subtitle: Optional[str] = None,
-        config_path: Optional[str] = None,
-        feature_extractors: Optional[FeatureExtractorsType] = None,
-        log_dir: Optional[str] = None,
+        report_subtitle: str | None = None,
+        config_path: PathLike | None = None,
+        feature_extractors: FeatureExtractorsType | None = None,
+        log_dir: PathLike | None = None,
         use_cache: bool = False,
-        class_names_to_use: Optional[List[str]] = None,
-        batches_early_stop: Optional[int] = None,
-        remove_plots_after_report: Optional[bool] = True,
+        class_names_to_use: ClassNamesToUseType | None = None,
+        batches_early_stop: int | None = None,
+        remove_plots_after_report: bool | None = True,
     ):
         """
         Class method to create a detection manager instance from data in COCO format.
@@ -198,10 +206,10 @@ class DetectionAnalysisManager(AnalysisManagerAbstract):
         :param val_annotation_file_path:       Path to the annotation file for validation images.
         :param report_title:                   Title of the report. Will be used to save the report.
         :param report_subtitle:                Subtitle of the report.
-        :param config_path:                    Full path to the hydra configuration file. If None, the default configuration will be used. Mutually exclusive
-                                               with feature_extractors.
-        :param feature_extractors:             One or more feature extractors to use. If None, the default configuration will be used. Mutually exclusive
-                                               with config_path.
+        :param config_path:                    Full path to the hydra configuration file. If None, the default configuration will be used.
+                                               Mutually exclusive with feature_extractors.
+        :param feature_extractors:             One or more feature extractors to use. If None, the default configuration will be used.
+                                               Mutually exclusive with config_path.
         :param log_dir:                        Directory where to save the logs. By default, uses the current working directory.
         :param use_cache:                      Whether to use cache or not for the configuration of the data.
         :param class_names_to_use:             List of class names that we should use for analysis.
@@ -248,17 +256,17 @@ class DetectionAnalysisManager(AnalysisManagerAbstract):
     def analyze_voc(
         cls,
         *,
-        root_dir: str,
-        year: Union[str, int],
+        root_dir: PathLike,
+        year: str | int,
         report_title: str,
-        report_subtitle: Optional[str] = None,
-        config_path: Optional[str] = None,
-        feature_extractors: Optional[FeatureExtractorsType] = None,
-        log_dir: Optional[str] = None,
+        report_subtitle: str | None = None,
+        config_path: PathLike | None = None,
+        feature_extractors: FeatureExtractorsType | None = None,
+        log_dir: PathLike | None = None,
         use_cache: bool = False,
-        class_names_to_use: Optional[List[str]] = None,
-        batches_early_stop: Optional[int] = None,
-        remove_plots_after_report: Optional[bool] = True,
+        class_names_to_use: ClassNamesToUseType | None = None,
+        batches_early_stop: int | None = None,
+        remove_plots_after_report: bool | None = True,
     ):
         """
         Class method to create a detection manager instance from the Pascal VOC dataset.
@@ -267,10 +275,10 @@ class DetectionAnalysisManager(AnalysisManagerAbstract):
         :param year:                        Year or version of the Pascal VOC dataset.
         :param report_title:                Title of the report. Will be used to save the report.
         :param report_subtitle:             Subtitle of the report.
-        :param config_path:                 Full path to the hydra configuration file. If None, the default configuration will be used. Mutually exclusive
-                                            with feature_extractors.
-        :param feature_extractors:          One or more feature extractors to use. If None, the default configuration will be used. Mutually exclusive
-                                            with config_path.
+        :param config_path:                 Full path to the hydra configuration file. If None, the default configuration will be used.
+                                            Mutually exclusive with feature_extractors.
+        :param feature_extractors:          One or more feature extractors to use. If None, the default configuration will be used.
+                                            Mutually exclusive with config_path.
         :param log_dir:                     Directory where to save the logs. By default, uses the current working directory.
         :param use_cache:                   Whether to use cache or not for the configuration of the data.
         :param class_names_to_use:          List of class names that we should use for analysis.

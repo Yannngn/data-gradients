@@ -1,6 +1,7 @@
-from typing import Union
+from pathlib import Path
 
 from data_gradients.datasets.segmentation.coco_format_segmentation_dataset import COCOFormatSegmentationDataset
+from data_gradients.datasets.utils import PathLike
 
 
 class COCOSegmentationDataset(COCOFormatSegmentationDataset):
@@ -37,14 +38,20 @@ class COCOSegmentationDataset(COCOFormatSegmentationDataset):
     ```
     """
 
-    def __init__(self, root_dir: str, split: str, year: Union[int, str] = 2017):
+    def __init__(self, root_dir: PathLike, split: PathLike, year: int | str = 2017):
         """
         :param root_dir: Where the data is stored.
         :param split:    Which split of the data to use. `train` or `val`
         :param year:     Which year of the data to use. Default to `2017`
         """
         super().__init__(
-            root_dir=root_dir,
-            images_subdir=f"images/{split}{year}",
-            annotation_file_path=f"annotations/instances_{split}{year}.json",
+            root_dir=Path(root_dir),
+            images_subdir=Path("images") / f"{split}{year}",
+            annotation_file_path=Path("annotations") / f"instances_{split}{year}.json",
         )
+
+
+#
+#
+#
+#

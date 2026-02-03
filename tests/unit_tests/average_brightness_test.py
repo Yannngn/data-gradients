@@ -2,10 +2,10 @@ import unittest
 
 import numpy as np
 
-from data_gradients.feature_extractors import ImagesAverageBrightness
-from data_gradients.utils.data_classes.data_samples import ImageSample, Image
-from data_gradients.utils.data_classes.image_channels import ImageChannels
 from data_gradients.dataset_adapters.formatters.utils import FloatImageFormat
+from data_gradients.feature_extractors import ImagesAverageBrightness
+from data_gradients.utils.data_classes.data_samples import Image, ImageSample
+from data_gradients.utils.data_classes.image_channels import ImageChannels
 
 
 class AverageBrightnessTest(unittest.TestCase):
@@ -44,7 +44,7 @@ class AverageBrightnessTest(unittest.TestCase):
             sample_id="Random",
         )
 
-        target_value = np.mean(image)
+        target_value = float(np.mean(image))
         self.assertAlmostEqual(target_value, 0.5)
         feature_extractor = ImagesAverageBrightness()
 

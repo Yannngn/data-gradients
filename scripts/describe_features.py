@@ -13,10 +13,14 @@ def section_name_to_md_link(name: str) -> str:
 
 
 def class_to_github_url(class_obj: type) -> str:
-    github_base_url = "https://github.com/Deci-AI/data-gradients/blob/master/src/"
+    github_base_url = "https://github.com/Yannngn/data-gradients/blob/master/src/"
+    module_obj = inspect.getmodule(class_obj)
+    if module_obj is None:
+        raise ValueError(f"Could not find module for class {class_obj.__name__}")
 
-    class_path = inspect.getmodule(class_obj).__name__
+    class_path = module_obj.__name__
     module_path = class_path.replace(".", "/") + ".py"
+
     return github_base_url + module_path
 
 

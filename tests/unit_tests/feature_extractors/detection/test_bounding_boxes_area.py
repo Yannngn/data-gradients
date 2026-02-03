@@ -79,8 +79,11 @@ class TestComputeHistogram(unittest.TestCase):
         extractor.update(val_sample)
         feature = extractor.aggregate()
 
-        histogram_dict_train = feature.json["train"]["histogram_per_class_area"]
-        histogram_dict_val = feature.json["val"]["histogram_per_class_area"]
+        if feature is None:
+            raise (RuntimeError(f"Failed to aggregate feature on {self._testMethodName}."))
+
+        histogram_dict_train = feature.json["train"]["histogram_per_class_area"]  # type: ignore
+        histogram_dict_val = feature.json["val"]["histogram_per_class_area"]  # type: ignore
 
         expected_result_train = {
             "name": "bbox_area_sqrt",
@@ -129,8 +132,11 @@ class TestComputeHistogram(unittest.TestCase):
         extractor.update(val_sample)
         feature = extractor.aggregate()
 
-        histogram_dict_train = feature.json["train"]["histogram_per_class_area_perimeter"]
-        histogram_dict_val = feature.json["val"]["histogram_per_class_area_perimeter"]
+        if feature is None:
+            raise (RuntimeError(f"Failed to aggregate feature on {self._testMethodName}."))
+
+        histogram_dict_train = feature.json["train"]["histogram_per_class_area_perimeter"]  # type: ignore
+        histogram_dict_val = feature.json["val"]["histogram_per_class_area_perimeter"]  # type: ignore
 
         expected_result_train = {
             "name": "bbox_area_perimeter",

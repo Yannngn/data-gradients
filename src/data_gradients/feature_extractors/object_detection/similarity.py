@@ -5,14 +5,14 @@ from torchvision.models import Swin_V2_B_Weights, swin_v2_b
 from torchvision.ops import box_iou
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.utils.data_classes import DetectionSample
 from data_gradients.utils.data_classes.image_channels import BGRChannels, GrayscaleChannels, ImageChannels, RGBChannels
 from data_gradients.visualize.plot_options import HeatmapOptions
 
 
 @register_feature_extractor("DetectionClassSimilarity")
-class DetectionClassSimilarity(AbstractFeatureExtractor):
+class DetectionClassSimilarity(NoSourceFeatureExtractor):
     """
     Analyzes and visualizes the similarity of class instances across dataset splits using a pre-trained Vision Transformer model.
 
@@ -33,7 +33,7 @@ class DetectionClassSimilarity(AbstractFeatureExtractor):
         """
         self.model = swin_v2_b(weights=Swin_V2_B_Weights.IMAGENET1K_V1)
         self.model.eval()
-        self.model.head = Identity()
+        self.model.head = Identity()  # type: ignore[assignment]
         self.image_preprocessor = Swin_V2_B_Weights.IMAGENET1K_V1.transforms()
 
         self.features = []
@@ -54,12 +54,14 @@ class DetectionClassSimilarity(AbstractFeatureExtractor):
             cropped_images = [c[:, :, ::-1].copy() for c in cropped_images]
         elif isinstance(image_channels, GrayscaleChannels):
             cropped_images = [np.repeat(c[..., np.newaxis] if c.ndim == 2 else c, 3, axis=2) for c in cropped_images]
-        cropped_images = [torch.from_numpy(c.transpose((2, 0, 1))).type(torch.FloatTensor) for c in cropped_images]
-        cropped_images = [c / 255 for c in cropped_images]
-        cropped_images = [self.image_preprocessor(c) for c in cropped_images]
-        cropped_images = torch.stack(cropped_images)
+        cropped_tensors = [torch.from_numpy(c.transpose((2, 0, 1))).to(dtype=torch.float32) for c in cropped_images]
+        cropped_tensors = [c / 255 for c in cropped_tensors]
+        cropped_tensors = [self.image_preprocessor(c) for c in cropped_tensors]
+        cropped_tensors = torch.stack(cropped_tensors)
+
         with torch.no_grad():
-            extracted_features = self.model(cropped_images)
+            extracted_features = self.model(cropped_tensors)
+
         return extracted_features
 
     def update(self, sample: DetectionSample):
@@ -92,7 +94,7 @@ class DetectionClassSimilarity(AbstractFeatureExtractor):
             x1, x2, y1, y2 = self._clip_to_image_bounds(image_height, image_width, x1, x2, y1, y2)
 
             # Check if bbox coordinates are valid and area is at least 20 pixels
-            if self._is_valid_coordinates(x1, x2, y1, y2) and not self._should_exclude_based_on_iou(iou_matrix, idx):
+            if iou_matrix is not None and self._is_valid_coordinates(x1, x2, y1, y2) and not self._should_exclude_based_on_iou(iou_matrix, idx):
                 cropped_image = image[y1:y2, x1:x2]  # Crop using numpy slicing
                 cropped_images.append(cropped_image)
                 class_ids.append(class_id)
@@ -113,7 +115,7 @@ class DetectionClassSimilarity(AbstractFeatureExtractor):
         """
         return x1 < x2 and y1 < y2 and (x2 - x1) * (y2 - y1) >= 20
 
-    def _clip_to_image_bounds(self, image_height, image_width, x1, x2, y1, y2) -> (int, int, int, int):
+    def _clip_to_image_bounds(self, image_height, image_width, x1, x2, y1, y2) -> tuple[int, int, int, int]:
         """
         Clips bounding box coordinates to the image bounds.
 
@@ -139,20 +141,21 @@ class DetectionClassSimilarity(AbstractFeatureExtractor):
         :param idx: int. The index of the current bounding box in the IoU matrix.
         :return: bool. True if the bounding box should be excluded, False otherwise.
         """
-        exclude = False
         if iou_matrix is not None:
             # Create a mask to exclude the current index (self-comparison)
-            mask = torch.ones(iou_matrix.size(0), dtype=bool)
+            mask = torch.ones(iou_matrix.size(0), dtype=torch.bool)
             mask[idx] = False
 
             # Check if there are no intersections at all
             if len(iou_matrix[idx, mask]) == 0:
-                exclude = False
-            else:
-                # Check if the maximum IoU with any other box exceeds the threshold
-                max_iou = iou_matrix[idx, mask].max().item()
-                exclude = max_iou > self.iou_threshold
-        return exclude
+                return False
+
+            # Check if the maximum IoU with any other box exceeds the threshold
+            max_iou = iou_matrix[idx, mask].max().item()
+
+            return self.iou_threshold is not None and max_iou > self.iou_threshold
+
+        return False
 
     def aggregate(self) -> Feature:
         """
@@ -167,44 +170,60 @@ class DetectionClassSimilarity(AbstractFeatureExtractor):
         # Normalize the feature vectors
         norm_features = all_features / all_features.norm(dim=1, keepdim=True)
 
+        if self.all_classes_list is None:
+            raise RuntimeError("No classes were found in the dataset.")
+
+        # Handle class_names supplied as dict[int,str] or list-like
+        if isinstance(self.all_classes_list, dict):
+            class_id_keys = sorted(self.all_classes_list.keys())
+            class_names = [self.all_classes_list[k] for k in class_id_keys]
+            id_to_index = {k: i for i, k in enumerate(class_id_keys)}
+            mapped_class_indices = torch.tensor([id_to_index[int(x)] for x in all_class_ids], dtype=torch.int64)
+        else:
+            class_names = list(self.all_classes_list)
+            mapped_class_indices = all_class_ids
+
         # Initialize the similarity table
-        num_classes = len(self.all_classes_list)
+        num_classes = len(class_names)
         similarity_table = torch.zeros((num_classes, num_classes))
 
         # Prepare the JSON object
         json_data = {}
-        instances_count = np.zeros(len(self.all_classes_list))
+        instances_count = np.zeros(num_classes)
 
         # Calculate the average similarity for each class pair
-        for class_id_i in range(num_classes):
-            for class_id_j in range(num_classes):
-                indices_i = (all_class_ids == class_id_i).nonzero(as_tuple=True)[0]
-                indices_j = (all_class_ids == class_id_j).nonzero(as_tuple=True)[0]
-                class_pair_similarities = torch.mm(norm_features[indices_i], norm_features[indices_j].T)
+        for i in range(num_classes):
+            for j in range(num_classes):
+                indices_i = (mapped_class_indices == i).nonzero(as_tuple=True)[0]
+                indices_j = (mapped_class_indices == j).nonzero(as_tuple=True)[0]
+                if indices_i.numel() > 0 and indices_j.numel() > 0:
+                    class_pair_similarities = torch.mm(norm_features[indices_i], norm_features[indices_j].T)
+                else:
+                    class_pair_similarities = torch.tensor([])
                 average_similarity = class_pair_similarities.mean().item() if class_pair_similarities.numel() > 0 else 0
-                similarity_table[class_id_i, class_id_j] = average_similarity
+                similarity_table[i, j] = average_similarity
 
-                class_name_i = self.all_classes_list[class_id_i]
-                class_name_j = self.all_classes_list[class_id_j]
+                class_name_i = class_names[i]
+                class_name_j = class_names[j]
                 key = f"{class_name_i}-{class_name_j}"
                 json_data[key] = {
                     "average_similarity": average_similarity,
                     f"{class_name_i}_instances": len(indices_i),
                     f"{class_name_j}_instances": len(indices_j),
                 }
-                instances_count[class_id_i] = len(indices_i)
+                instances_count[i] = len(indices_i)
 
         # Convert the similarity table to a numpy array
         similarity_table_np = similarity_table.numpy()
 
-        num_clases_for_plot = min(num_classes, 15)
+        num_classes_for_plot = min(num_classes, 15)
 
-        data = {"All data": similarity_table_np[:num_clases_for_plot, :num_clases_for_plot]}
+        data = {"All data": similarity_table_np[:num_classes_for_plot, :num_classes_for_plot]}
 
         # Prepare the plot options for the heatmap
         heatmap_options = HeatmapOptions(
-            xticklabels=[self.all_classes_list[i] for i in range(num_clases_for_plot)],
-            yticklabels=[self.all_classes_list[i] + f" ({int(instances_count[i])})" for i in range(num_clases_for_plot)],
+            xticklabels=[self.all_classes_list[i] for i in range(num_classes_for_plot)],
+            yticklabels=[self.all_classes_list[i] + f" ({int(instances_count[i])})" for i in range(num_classes_for_plot)],
             x_label_name="Class",
             y_label_name="Class, Instance Count",
             cbar=True,

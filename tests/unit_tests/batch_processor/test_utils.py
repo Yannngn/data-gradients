@@ -1,5 +1,7 @@
-import torch
 import unittest
+
+import torch
+
 from data_gradients.dataset_adapters.utils import to_one_hot
 
 

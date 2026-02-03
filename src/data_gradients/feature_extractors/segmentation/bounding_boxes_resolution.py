@@ -1,14 +1,14 @@
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.utils.common import LABELS_PALETTE
 from data_gradients.utils.data_classes import SegmentationSample
 from data_gradients.visualize.seaborn_renderer import Hist2DPlotOptions
 
 
 @register_feature_extractor()
-class SegmentationBoundingBoxResolution(AbstractFeatureExtractor):
+class SegmentationBoundingBoxResolution(NoSourceFeatureExtractor):
     """
     Analyzes the scale variation of object dimensions across the dataset.
 
@@ -22,7 +22,7 @@ class SegmentationBoundingBoxResolution(AbstractFeatureExtractor):
 
     def update(self, sample: SegmentationSample):
         height, width = sample.image.shape[:2]
-        for j, class_channel in enumerate(sample.contours):
+        for class_channel in sample.contours:
             for contour in class_channel:
                 class_id = contour.class_id
                 class_name = sample.class_names[class_id]

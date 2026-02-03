@@ -1,9 +1,8 @@
-from typing import Tuple
 import cv2
 import numpy as np
 
 
-def resize_in_chunks(img: np.ndarray, size: Tuple[int, int], interpolation=cv2.INTER_LINEAR) -> np.ndarray:
+def resize_in_chunks(img: np.ndarray, size: tuple[int, int], interpolation=cv2.INTER_LINEAR) -> np.ndarray:
     """Resize an image by chunks. This function supports any number of channels, while `cv2.resize` only supports up to 512 channels.
 
     :param img:             The image to resize. (H, W, C) or (H, W) expected.

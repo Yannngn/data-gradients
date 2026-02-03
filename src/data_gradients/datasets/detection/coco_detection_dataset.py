@@ -1,6 +1,7 @@
-from typing import Union
+from pathlib import Path
 
 from data_gradients.datasets.detection.coco_format_detection_dataset import COCOFormatDetectionDataset
+from data_gradients.datasets.utils import PathLike
 
 
 class COCODetectionDataset(COCOFormatDetectionDataset):
@@ -33,7 +34,7 @@ class COCODetectionDataset(COCOFormatDetectionDataset):
     ```
     """
 
-    def __init__(self, root_dir: str, split: str, year: Union[int, str] = 2017):
+    def __init__(self, root_dir: PathLike, split: PathLike, year: int | str = 2017):
         """
         :param root_dir: Where the data is stored.
         :param split:    Which split of the data to use. `train` or `val`
@@ -41,6 +42,8 @@ class COCODetectionDataset(COCOFormatDetectionDataset):
         """
         super().__init__(
             root_dir=root_dir,
-            images_subdir=f"images/{split}{year}",
-            annotation_file_path=f"annotations/instances_{split}{year}.json",
+            images_subdir=Path("images") / f"{split}{year}",
+            annotation_file_path=Path("annotations") / f"instances_{split}{year}.json",
         )
+        #
+        #

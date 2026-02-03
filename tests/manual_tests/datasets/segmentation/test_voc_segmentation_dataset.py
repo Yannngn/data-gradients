@@ -1,7 +1,9 @@
 import unittest
+
 from torch.utils.data import DataLoader
-from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
+
 from data_gradients.datasets.segmentation.voc_segmentation_dataset import VOCSegmentationDataset
+from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 
 
 class VOCSegmentationDatasetTest(unittest.TestCase):

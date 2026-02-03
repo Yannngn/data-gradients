@@ -4,6 +4,8 @@ Generate a list of reports for segmentation datasets.
 The script requires a clear dataset directory structures and will not work in environments not setup the same way.
 """
 
+# TODO: Replace super_gradients imports with CityscapesDataset
+
 from super_gradients.training.dataloaders import cityscapes_train, cityscapes_val
 
 from data_gradients.feature_extractors import (

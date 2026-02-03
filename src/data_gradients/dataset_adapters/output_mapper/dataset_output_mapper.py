@@ -1,16 +1,16 @@
 from collections.abc import Callable, Mapping, Sequence
-from typing import Union
+from typing import TypeAlias
 
 import numpy as np
-import PIL
 import torch
 from omegaconf import ListConfig
+from PIL import Image as PILImage
 
 from data_gradients.dataset_adapters.config.data_config import DataConfig
 from data_gradients.dataset_adapters.config.questions import FixedOptionsQuestion, text_to_yellow
 from data_gradients.dataset_adapters.output_mapper.tensor_extractor import get_tensor_extractor_options
 
-SupportedData = Union[tuple, list, Mapping, tuple, list]
+SupportedData: TypeAlias = tuple | list | Mapping | tuple | list
 
 
 class DatasetOutputMapper:
@@ -37,7 +37,7 @@ class DatasetOutputMapper:
         try:
             return self._to_torch(images)
         except TypeError:
-            raise TypeError(f"{type(images)} is not a supported format for images!")
+            raise TypeError(f"{type(images)} is not a supported format for images!") from None
         except Exception as e:
             raise RuntimeError("Error while loading images!") from e  # Here we want the traceback
 
@@ -47,56 +47,68 @@ class DatasetOutputMapper:
         try:
             return self._to_torch(labels)
         except TypeError:
-            raise TypeError(f"{type(labels)} is not a supported format for labels!")
+            raise TypeError(f"{type(labels)} is not a supported format for labels!") from None
         except Exception as e:
             raise RuntimeError("Error while loading labels!") from e  # Here we want the traceback
 
     def _get_images_extractor(self, data: SupportedData) -> Callable[[SupportedData], torch.Tensor]:
         if self.data_config.images_extractor is not None:
-            return self.data_config.get_images_extractor()
+            extractor = self.data_config.get_images_extractor()
+            if extractor is not None:
+                return extractor
 
         # We use the heuristic that a tuple of 2 should represent (image, label) in this order
-        if isinstance(data, (tuple, list)) and len(data) == 2:
-            if isinstance(data[0], (torch.Tensor, np.ndarray, PIL.Image.Image)):
+        if isinstance(data, tuple | list) and len(data) == 2:
+            if isinstance(data[0], torch.Tensor | np.ndarray | PILImage.Image):
                 self.data_config.images_extractor = "[0]"  # We save it for later use
-                return self.data_config.get_images_extractor()  # This will return a callable
+                extractor = self.data_config.get_images_extractor()  # This will return a callable
+                if extractor is not None:
+                    return extractor
 
         # Otherwise, we ask the user how to map data -> image
-        if isinstance(data, (tuple, list, Mapping, tuple, list)):
+        if isinstance(data, tuple | list | Mapping | tuple | list):
             description, options = get_tensor_extractor_options(data)
             question = FixedOptionsQuestion(question=f"Which tensor represents your {text_to_yellow('Image(s)')} ?", options=options)
-            return self.data_config.get_images_extractor(question=question, hint=description)
+            extractor = self.data_config.get_images_extractor(question=question, hint=description)
+            if extractor is not None:
+                return extractor
 
         raise NotImplementedError(
             f"Got object {type(data)} from Data Iterator which is not supported!\n"
             f"Please implement a custom `images_extractor` for your dataset. "
-            f"You can find more detail about this in our documentation: https://github.com/Deci-AI/data-gradients"
+            f"You can find more detail about this in our documentation:  https://github.com/Yannngn/data-gradients"
         )
 
     def _get_labels_extractor(self, data: SupportedData) -> Callable[[SupportedData], torch.Tensor]:
         if self.data_config.labels_extractor is not None:
-            return self.data_config.get_labels_extractor()
+            extractor = self.data_config.get_labels_extractor()
+            if extractor is not None:
+                return extractor
 
         # We use the heuristic that a tuple of 2 should represent (image, label) in this order
-        if isinstance(data, (tuple, list)) and len(data) == 2:
-            if isinstance(data[1], (torch.Tensor, np.ndarray, PIL.Image.Image)):
+        if isinstance(data, tuple | list) and len(data) == 2:
+            if isinstance(data[1], torch.Tensor | np.ndarray | PILImage.Image):
                 self.data_config.labels_extractor = "[1]"  # We save it for later use
-                return self.data_config.get_labels_extractor()  # This will return a callable
+                extractor = self.data_config.get_labels_extractor()  # This will return a callable
+                if extractor is not None:
+                    return extractor
 
         # Otherwise, we ask the user how to map data -> labels
-        if isinstance(data, (tuple, list, Mapping, tuple, list)):
+        if isinstance(data, tuple | list | Mapping | tuple | list):
             description, options = get_tensor_extractor_options(data)
             question = FixedOptionsQuestion(question=f"Which tensor represents your {text_to_yellow('Label(s)')} ?", options=options)
-            return self.data_config.get_labels_extractor(question=question, hint=description)
+            extractor = self.data_config.get_labels_extractor(question=question, hint=description)
+            if extractor is not None:
+                return extractor
 
         raise NotImplementedError(
             f"Got object {type(data)} from Data Iterator which is not supported!\n"
             f"Please implement a custom `labels_extractor` for your dataset. "
-            f"You can find more detail about this in our documentation: https://github.com/Deci-AI/data-gradients"
+            f"You can find more detail about this in our documentation:  https://github.com/Yannngn/data-gradients"
         )
 
     @classmethod
-    def _to_torch(cls, data: np.ndarray | PIL.Image.Image | torch.Tensor | str | Sequence[PIL.Image.Image | np.ndarray | str]) -> torch.Tensor:
+    def _to_torch(cls, data: np.ndarray | PILImage.Image | torch.Tensor | str | Sequence[PILImage.Image | np.ndarray | str]) -> torch.Tensor:
         """Convert various input types to a PyTorch tensor.
 
         :param data: Input data to be converted. This can be:
@@ -112,14 +124,14 @@ class DatasetOutputMapper:
             return data
         elif isinstance(data, np.ndarray):
             return torch.from_numpy(data)
-        elif isinstance(data, PIL.Image.Image):
+        elif isinstance(data, PILImage.Image):
             return torch.from_numpy(np.array(data))
         elif isinstance(data, str):
-            with PIL.Image.open(data) as img:
+            with PILImage.open(data) as img:
                 return torch.from_numpy(np.array(img))
         elif np.isscalar(data):
             return torch.tensor(data)
-        elif isinstance(data, (list, tuple, ListConfig)):
+        elif isinstance(data, list | tuple | ListConfig):
             tensors = [cls._to_torch(t) for t in data]
 
             # Check if all tensors can be stacked

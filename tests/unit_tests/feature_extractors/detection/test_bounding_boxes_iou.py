@@ -3,11 +3,11 @@ import unittest
 
 import numpy as np
 
+from data_gradients.dataset_adapters.formatters.utils import Uint8ImageFormat
 from data_gradients.feature_extractors.object_detection.bounding_boxes_iou import DetectionBoundingBoxIoU
 from data_gradients.utils.data_classes.data_samples import DetectionSample, Image
-from data_gradients.visualize.seaborn_renderer import SeabornRenderer
 from data_gradients.utils.data_classes.image_channels import ImageChannels
-from data_gradients.dataset_adapters.formatters.utils import Uint8ImageFormat
+from data_gradients.visualize.seaborn_renderer import SeabornRenderer
 
 
 class BoundingBoxesIoUTest(unittest.TestCase):
@@ -71,7 +71,11 @@ class BoundingBoxesIoUTest(unittest.TestCase):
         extractor.update(valid_sample)
         feature = extractor.aggregate()
         sns = SeabornRenderer()
-        f = sns.render(feature.data, feature.plot_options)
+        f = sns.render(feature.data, feature.plot_options)  # type: ignore
+
+        if f is None:
+            raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
+
         f.savefig("test_plot.png")
         f.show()
 
@@ -84,7 +88,11 @@ class BoundingBoxesIoUTest(unittest.TestCase):
 
         feature = extractor.aggregate()
         sns = SeabornRenderer()
-        f = sns.render(feature.data, feature.plot_options)
+        f = sns.render(feature.data, feature.plot_options)  # type: ignore
+
+        if f is None:
+            raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
+
         f.savefig("test_plot_80_classes.png")
         f.show()
 
@@ -97,7 +105,11 @@ class BoundingBoxesIoUTest(unittest.TestCase):
 
         feature = extractor.aggregate()
         sns = SeabornRenderer()
-        f = sns.render(feature.data, feature.plot_options)
+        f = sns.render(feature.data, feature.plot_options)  # type: ignore
+
+        if f is None:
+            raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
+
         f.savefig("test_plot_16_classes.png")
         f.show()
 

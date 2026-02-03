@@ -4,7 +4,6 @@ import numpy as np
 from data_gradients.common.registry.registry import register_feature_extractor
 from data_gradients.feature_extractors.common.sample_visualization import AbstractSampleVisualization
 from data_gradients.utils.data_classes.data_samples import SegmentationSample
-
 from data_gradients.visualize.detection.utils import generate_gray_color_mapping
 
 

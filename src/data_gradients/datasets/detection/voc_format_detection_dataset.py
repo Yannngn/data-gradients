@@ -1,11 +1,14 @@
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterable, Mapping
+from pathlib import Path
 from xml.etree import ElementTree
 
 import numpy as np
 
+from data_gradients.dataset_adapters.config.typing_utils import ClassNamesType
 from data_gradients.datasets.base_dataset import BaseImageLabelDirectoryDataset
 from data_gradients.datasets.FolderProcessor import DEFAULT_IMG_EXTENSIONS
+from data_gradients.datasets.utils import PathLike
 
 logger = logging.getLogger(__name__)
 
@@ -133,19 +136,21 @@ class VOCFormatDetectionDataset(BaseImageLabelDirectoryDataset):
 
     def __init__(
         self,
-        root_dir: str,
-        images_subdir: str,
-        labels_subdir: str,
-        class_names: Sequence[str],
-        config_path: str | None = None,
+        root_dir: PathLike,
+        images_subdir: PathLike,
+        labels_subdir: PathLike,
+        class_names: ClassNamesType,
+        config_path: PathLike | None = None,
         verbose: bool = False,
-        image_extensions: Sequence[str] = DEFAULT_IMG_EXTENSIONS,
-        label_extensions: Sequence[str] = ("xml",),
+        image_extensions: Iterable[str] = DEFAULT_IMG_EXTENSIONS,
+        label_extensions: Iterable[str] = ("xml",),
     ):
         """
         :param root_dir:            Where the data is stored.
-        :param images_subdir:       Local path to directory that includes all the images. Path relative to `root_dir`. Can be the same as `labels_subdir`.
-        :param labels_subdir:       Local path to directory that includes all the labels. Path relative to `root_dir`. Can be the same as `images_subdir`.
+        :param images_subdir:       Local path to directory that includes all the images. Path relative to `root_dir`.
+            Can be the same as `labels_subdir`.
+        :param labels_subdir:       Local path to directory that includes all the labels. Path relative to `root_dir`.
+            Can be the same as `images_subdir`.
         :param class_names:         List of class names. This is required to be able to parse the class names into class ids.
         :param config_path:         Path to an optional config file. This config file should contain the list of file ids to include.
                                     If None, all the available images and tagets will be loaded.
@@ -164,21 +169,48 @@ class VOCFormatDetectionDataset(BaseImageLabelDirectoryDataset):
         )
         self.class_names = class_names
 
-    def load_labels(self, path: str) -> np.ndarray:
-        with open(path, encoding="utf-8") as f:
+    def load_labels(self, path: PathLike) -> np.ndarray:
+        with Path(path).open(encoding="utf-8") as f:
             xml_parser = ElementTree.parse(f).getroot()
 
         labels = []
         for obj in xml_parser.iter("object"):
-            class_name = obj.find("name").text
+            obj_name = obj.find("name")
+            class_name = obj_name.text if obj_name is not None else ""
             xml_box = obj.find("bndbox")
+            obj_difficult = obj.find("difficult")
 
-            if class_name in self.class_names and obj.find("difficult").text != "1":  # TODO: understand if we want difficult!=1 or not
-                class_id = self.class_names.index(class_name)
-                xmin = xml_box.find("xmin").text
-                ymin = xml_box.find("ymin").text
-                xmax = xml_box.find("xmax").text
-                ymax = xml_box.find("ymax").text
-                labels.append([class_id, xmin, ymin, xmax, ymax])
+            # TODO: understand if we want difficult!=1 or not
+            if class_name is None:
+                continue
+
+            if class_name in self.class_names and (obj_difficult is None or obj_difficult.text != "1") and xml_box is not None:
+                if isinstance(self.class_names, list | set | tuple):
+                    class_id = self.class_names.index(class_name)
+                elif isinstance(self.class_names, Mapping):
+                    class_id = next((k for k, v in self.class_names.items() if v == class_name), -1)
+                    if class_id == -1:
+                        continue
+                elif hasattr(self.class_names, "numpy"):  # npt.NDArray
+                    class_names_array = self.class_names
+                    class_id = int(np.where(class_names_array == class_name)[0][0])  # type: ignore[attr-defined]
+
+                elif hasattr(self.class_names, "nonzero"):  # torch.Tensor
+                    class_names_tensor = self.class_names
+                    class_id = int((class_names_tensor == class_name).nonzero(as_tuple=True)[0][0])  # type: ignore[attr-defined]
+
+                obj_labels = [
+                    xml_box.find("xmin"),
+                    xml_box.find("ymin"),
+                    xml_box.find("xmax"),
+                    xml_box.find("ymax"),
+                ]
+
+                if any(obj is None for obj in obj_labels):
+                    continue
+
+                labels.append(
+                    [class_id, float(obj_labels[0].text), float(obj_labels[1].text), float(obj_labels[2].text), float(obj_labels[3].text)]  # type: ignore[ArgType]
+                )
 
         return np.array(labels, dtype=float) if labels else np.zeros((0, 5), dtype=float)

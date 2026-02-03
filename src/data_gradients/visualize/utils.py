@@ -1,14 +1,14 @@
-from typing import Tuple
 import cv2
 import numpy as np
 
 
-def resize_and_align_bottom_center(image: np.ndarray, target_shape: Tuple[int, int]) -> np.ndarray:
+def resize_and_align_bottom_center(image: np.ndarray, target_shape: tuple[int, int]) -> np.ndarray:
     """Resizes an image while maintaining its aspect ratio, and aligns it at the bottom center on a canvas of the target size.
 
     :param image:           Input image to resize and center.
     :param target_shape:    Desired output shape as (height, width).
-    :return:                Output image, which is the input image resized, centered horizontally, and aligned at the bottom on a canvas of the target size.
+    :return:                Output image, which is the input image resized, centered horizontally,
+                            and aligned at the bottom on a canvas of the target size.
     """
     image_height, image_width = image.shape[:2]
     target_height, target_width = target_shape

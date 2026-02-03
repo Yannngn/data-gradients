@@ -1,28 +1,36 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 import seaborn
 from jinja2 import Template
-from xhtml2pdf import pisa
+
+try:
+    from xhtml2pdf import pisa
+
+    HAS_PISA = True
+except ImportError:
+    HAS_PISA = False
 
 import data_gradients
 from data_gradients.assets import assets
+from data_gradients.config.utils import PathLike
 
 
 @dataclass
 class FeatureSummary:
     name: str
     description: str
-    image_path: str
-    notice: str = None
-    warning: str = None
+    image_path: PathLike | None = None
+    notice: str | None = None
+    warning: str | None = None
 
 
 class Section:
-    def __init__(self, section_name):
+    def __init__(self, section_name: str) -> None:
         self.section_name = section_name
-        self.features = []
+        self.features: list[FeatureSummary] = []
 
-    def add_feature(self, feature: FeatureSummary):
+    def add_feature(self, feature: FeatureSummary) -> None:
         self.features.append(feature)
 
 
@@ -32,10 +40,10 @@ class ResultsContainer:
     dived to sections and features.
     """
 
-    def __init__(self):
-        self.sections = []
+    def __init__(self) -> None:
+        self.sections: list[Section] = []
 
-    def add_section(self, section: Section):
+    def add_section(self, section: Section) -> None:
         self.sections.append(section)
 
 
@@ -48,8 +56,13 @@ class PDFWriter:
     """
 
     def __init__(
-        self, title: str, subtitle: str, html_template: str = assets.html.doc_template, logo_path: str = assets.image.logo, palette="pastel"
-    ):
+        self,
+        title: str,
+        subtitle: str,
+        html_template: str = assets.html.doc_template,
+        logo_path: PathLike = assets.image.logo,
+        palette: str = "pastel",
+    ) -> None:
         """
         :param title: The title of the PDF document.
         :param subtitle: The subtitle of the PDF document.
@@ -59,17 +72,23 @@ class PDFWriter:
         self.title = title
         self.subtitle = subtitle
         self.template = Template(source=html_template)
-        self.logo_path = logo_path
-        palette = seaborn.color_palette(palette=palette).as_hex()
-        self.train_color = palette[0]
-        self.val_color = palette[1]
+        self.logo_path = Path(logo_path)
+        palette_list = seaborn.color_palette(palette=palette).as_hex()
+        self.train_color = palette_list[0]
+        self.val_color = palette_list[1]
 
-    def write(self, results_container: ResultsContainer, output_filename: str):
+    def write(self, results_container: ResultsContainer, output_filename: PathLike) -> None:
         """
         :param results_container: The results container containing the sections and features.
         :param output_filename: The path to the output file.
         """
-        if not output_filename.endswith("pdf"):
+        if not HAS_PISA:
+            raise ImportError(
+                "PDF generation requires the 'xhtml2pdf' package. Install it with: pip install data-gradients[pdf] or uv sync --group pdf"
+            )
+
+        output_path = Path(output_filename)
+        if output_path.suffix != ".pdf":
             raise RuntimeError("filename must end with .pdf")
 
         doc = self.template.render(
@@ -79,9 +98,9 @@ class PDFWriter:
             version=data_gradients.__version__,
             train_color=self.train_color,
             val_color=self.val_color,
-            logo=assets.image.logo,
+            logo=self.logo_path,
             assets=assets,
         )
 
-        with open(output_filename, "w+b") as result_file:
+        with output_path.open("w+b") as result_file:
             pisa.CreatePDF(doc, dest=result_file)

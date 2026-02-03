@@ -4,15 +4,14 @@ import numpy as np
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
+from data_gradients.feature_extractors.utils import MostImportantValuesSelector
 from data_gradients.utils.data_classes import DetectionSample
 from data_gradients.visualize.seaborn_renderer import ViolinPlotOptions
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
-from data_gradients.feature_extractors.utils import MostImportantValuesSelector
 
 
 @register_feature_extractor()
-class DetectionBoundingBoxArea(AbstractFeatureExtractor):
+class DetectionBoundingBoxArea(NoSourceFeatureExtractor):
     """
     Analyzes and visualizes the size distribution of objects across dataset splits.
 
@@ -29,7 +28,8 @@ class DetectionBoundingBoxArea(AbstractFeatureExtractor):
                 - 'outliers':       Returns the top k rows with the most extreme average values.
                 - 'max':            Returns the top k rows with the highest average values.
                 - 'min':            Returns the top k rows with the lowest average values.
-                - 'min_max':        Returns the (top k)/2 rows with the biggest average values, and the (top k)/2 with the smallest average values.
+                - 'min_max':        Returns the (top k)/2 rows with the biggest average values,
+                                    and the (top k)/2 with the smallest average values.
         """
         self.value_extractor = MostImportantValuesSelector(topk=topk, prioritization_mode=prioritization_mode)
         self.data = []
@@ -40,7 +40,7 @@ class DetectionBoundingBoxArea(AbstractFeatureExtractor):
 
     def update(self, sample: DetectionSample):
         image_area = sample.image.shape[0] * sample.image.shape[1]
-        for class_id, bbox_xyxy in zip(sample.class_ids, sample.bboxes_xyxy):
+        for class_id, bbox_xyxy in zip(sample.class_ids, sample.bboxes_xyxy, strict=False):
             class_name = sample.class_names[class_id]
             bbox_area = (bbox_xyxy[2] - bbox_xyxy[0]) * (bbox_xyxy[3] - bbox_xyxy[1])
             bbox_perimeter = 2 * ((bbox_xyxy[2] - bbox_xyxy[0]) + (bbox_xyxy[3] - bbox_xyxy[1]))
@@ -51,7 +51,7 @@ class DetectionBoundingBoxArea(AbstractFeatureExtractor):
                     "class_name": class_name,
                     "relative_bbox_area": 100 * (bbox_area / image_area),
                     f"bbox_area_{self.hist_transform_name}": self.hist_transform(bbox_area),
-                    "bbox_area_perimeter": int((bbox_area / bbox_perimeter)),
+                    "bbox_area_perimeter": int(bbox_area / bbox_perimeter),
                 }
             )
 

@@ -4,11 +4,19 @@ import torch
 
 from data_gradients.dataset_adapters.config import DetectionDataConfig
 from data_gradients.dataset_adapters.formatters.detection import DetectionBatchFormatter
+from data_gradients.utils.data_classes.data_samples import images_list_to_tensor
+from data_gradients.utils.data_classes.image_channels import ImageChannels
 
 
 class DetectionBatchFormatterTest(unittest.TestCase):
     def setUp(self):
-        self.empty_data_config = DetectionDataConfig(use_cache=False, is_label_first=True, xyxy_converter="xyxy")
+        self.empty_data_config = DetectionDataConfig(
+            is_label_first=True,
+            xyxy_converter="xyxy",
+            class_names={0: "0", 1: "1"},
+            class_names_to_use=["0", "1"],
+            image_channels=ImageChannels.from_str("RGB"),
+        )
         self.channel_last_image = torch.zeros(64, 32, 3, dtype=torch.uint8)
         self.channel_first_image = torch.zeros(3, 64, 32, dtype=torch.uint8)
         self.channel_last_images = torch.zeros(1, 64, 32, 3, dtype=torch.uint8)
@@ -16,9 +24,9 @@ class DetectionBatchFormatterTest(unittest.TestCase):
 
     def test_format_sample_image(self):
         formatter = DetectionBatchFormatter(
-            data_config=self.empty_data_config, class_names=["0", "1"], class_names_to_use=["0", "1"], n_image_channels=3
+            data_config=self.empty_data_config,
         )
-        target_n5 = torch.Tensor(
+        target_n5 = torch.tensor(
             [
                 [0, 10, 20, 15, 25],
                 [0, 5, 10, 15, 25],
@@ -27,18 +35,18 @@ class DetectionBatchFormatterTest(unittest.TestCase):
             ]
         )
         images, labels = formatter.format(self.channel_last_image, target_n5)
+        images = images_list_to_tensor(images)
         self.assertTrue(torch.equal(images, self.channel_first_images))
         self.assertTrue(torch.equal(labels[0], target_n5))
 
         images, labels = formatter.format(self.channel_first_image, target_n5)
+        images = images_list_to_tensor(images)
         self.assertTrue(torch.equal(images, self.channel_first_images))
         self.assertTrue(torch.equal(labels[0], target_n5))
 
     def test_format_batch_n5(self):
-        formatter = DetectionBatchFormatter(
-            data_config=self.empty_data_config, class_names=["0", "1"], class_names_to_use=["0", "1"], n_image_channels=3
-        )
-        target_sample_n5 = torch.Tensor(
+        formatter = DetectionBatchFormatter(data_config=self.empty_data_config)
+        target_sample_n5 = torch.tensor(
             [
                 [
                     [0, 10, 20, 15, 25],
@@ -53,16 +61,17 @@ class DetectionBatchFormatterTest(unittest.TestCase):
             ]
         )
         images, labels = formatter.format(self.channel_last_images, target_sample_n5)
-
+        images = images_list_to_tensor(images)
         self.assertTrue(torch.equal(images, self.channel_first_images))
-        expected_first_batch = torch.Tensor(
+
+        expected_first_batch = torch.tensor(
             [
                 [0, 10, 20, 15, 25],
                 [0, 5, 10, 15, 25],
                 [1, 5, 10, 15, 25],
             ],
         )
-        expected_second_batch = torch.Tensor(
+        expected_second_batch = torch.tensor(
             [
                 [0, 5, 10, 15, 25],
                 [1, 10, 20, 15, 25],
@@ -72,9 +81,7 @@ class DetectionBatchFormatterTest(unittest.TestCase):
         self.assertTrue(torch.equal(labels[1], expected_second_batch))
 
     def test_format_batch_n6(self):
-        formatter = DetectionBatchFormatter(
-            data_config=self.empty_data_config, class_names=["0", "1"], class_names_to_use=["0", "1"], n_image_channels=3
-        )
+        formatter = DetectionBatchFormatter(data_config=self.empty_data_config)
         target_n6 = torch.Tensor(
             [
                 [0, 0, 10, 20, 15, 25],
@@ -86,15 +93,16 @@ class DetectionBatchFormatterTest(unittest.TestCase):
         )
         images, labels = formatter.format(self.channel_last_images, target_n6)
 
+        images = images_list_to_tensor(images)
         self.assertTrue(torch.equal(images, self.channel_first_images))
-        expected_first_batch = torch.Tensor(
+        expected_first_batch = torch.tensor(
             [
                 [0, 10, 20, 15, 25],
                 [0, 5, 10, 15, 25],
                 [1, 5, 10, 15, 25],
             ],
         )
-        expected_second_batch = torch.Tensor(
+        expected_second_batch = torch.tensor(
             [
                 [0, 5, 10, 15, 25],
                 [1, 10, 20, 15, 25],
@@ -105,29 +113,33 @@ class DetectionBatchFormatterTest(unittest.TestCase):
 
     def test_format_empty_sample(self):
         formatter = DetectionBatchFormatter(
-            data_config=self.empty_data_config, class_names=["0", "1"], class_names_to_use=["0", "1"], n_image_channels=3
+            data_config=self.empty_data_config,
         )
         expected_output_target = torch.zeros(0, 5)
 
-        empty_tensor = torch.Tensor([])
+        empty_tensor = torch.tensor([])
         images, labels = formatter.format(self.channel_last_image, empty_tensor)
+        images = images_list_to_tensor(images)
+
         self.assertTrue(torch.equal(images, self.channel_first_images))
         self.assertTrue(torch.equal(labels[0], expected_output_target))
 
         empty_zero_tensor = torch.zeros(0, 5)
         images, labels = formatter.format(self.channel_first_image, empty_zero_tensor)
+        images = images_list_to_tensor(images)
+
         self.assertTrue(torch.equal(images, self.channel_first_images))
         self.assertTrue(torch.equal(labels[0], expected_output_target))
 
     def test_format_empty_batch(self):
-        formatter = DetectionBatchFormatter(
-            data_config=self.empty_data_config, class_names=["0", "1"], class_names_to_use=["0", "1"], n_image_channels=3
-        )
+        formatter = DetectionBatchFormatter(data_config=self.empty_data_config)
         batch_size = 7
         expected_output_sample_target = torch.zeros(0, 5)
 
         empty_tensor = torch.zeros(batch_size, 0)
         images, labels = formatter.format(self.channel_last_images, empty_tensor)
+        images = images_list_to_tensor(images)
+
         self.assertTrue(torch.equal(images, self.channel_first_images))
         self.assertEqual(len(labels), batch_size)
         for sample in labels:
@@ -135,13 +147,16 @@ class DetectionBatchFormatterTest(unittest.TestCase):
 
         empty_zero_tensor = torch.zeros(batch_size, 0, 5)
         images, labels = formatter.format(self.channel_first_images, empty_zero_tensor)
+        images = images_list_to_tensor(images)
+
         self.assertTrue(torch.equal(images, self.channel_first_images))
         self.assertEqual(len(labels), batch_size)
+
         for sample in labels:
             self.assertTrue(torch.equal(sample, expected_output_sample_target))
 
     def test_group_detection_batch(self):
-        flat_batch = torch.Tensor(
+        flat_batch = torch.tensor(
             [
                 [0, 2, 10, 20, 15, 25],
                 [0, 1, 5, 10, 15, 25],
@@ -153,7 +168,7 @@ class DetectionBatchFormatterTest(unittest.TestCase):
             ]
         )
 
-        expected_grouped_batch = torch.Tensor(
+        expected_grouped_batch = torch.tensor(
             [
                 [[2, 10, 20, 15, 25], [1, 5, 10, 15, 25], [1, 5, 10, 15, 25]],
                 [[2, 10, 20, 15, 25], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]],
@@ -164,9 +179,11 @@ class DetectionBatchFormatterTest(unittest.TestCase):
                 [[2, 10, 20, 15, 25], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]],
             ]
         )
-        grouped_batch = DetectionBatchFormatter.group_detection_batch(flat_batch)
+        grouped_batch = DetectionBatchFormatter.group_detection_batch(flat_batch, 3)
         self.assertTrue(torch.equal(grouped_batch, expected_grouped_batch))
 
 
 if __name__ == "__main__":
     unittest.main()
+
+    ### anti copy on format

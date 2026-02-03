@@ -1,14 +1,14 @@
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.utils.common import LABELS_PALETTE
 from data_gradients.utils.data_classes import DetectionSample
 from data_gradients.visualize.seaborn_renderer import Hist2DPlotOptions
 
 
 @register_feature_extractor()
-class DetectionBoundingBoxSize(AbstractFeatureExtractor):
+class DetectionBoundingBoxSize(NoSourceFeatureExtractor):
     """
     Feature Extractor to gather and analyze the relative size of Bounding Boxes within images.
 

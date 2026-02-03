@@ -23,7 +23,7 @@ class AsyncThread:
         def _stop(loop):
             loop.stop()
 
-        if self._loop is None:
+        if self._loop is None or self._thread is None:
             return
 
         self.call_soon(_stop, self._loop)
@@ -37,6 +37,8 @@ class AsyncThread:
         """
         Run async func with args/kwargs in separate thread, returns Future object.
         """
+        if self._loop is None:
+            raise RuntimeError("AsyncThread is terminated")
         return asyncio.run_coroutine_threadsafe(func(*args, **kwargs), self._loop)
 
     def wrap(self, func):
@@ -52,6 +54,9 @@ class AsyncThread:
 
         Returns a handle with `.cancel`, not a full on Future
         """
+        if self._loop is None:
+            raise RuntimeError("AsyncThread is terminated")
+
         return self._loop.call_soon_threadsafe(func, *args)
 
     @property

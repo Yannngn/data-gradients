@@ -1,39 +1,40 @@
-from .abstract_feature_extractor import AbstractFeatureExtractor
-from .common import ImagesAverageBrightness, ImageColorDistribution, ImagesResolution, SummaryStats, ImageDuplicates
+from .abstract_feature_extractor import AbstractFeatureExtractor, FeatureExtractorsType, NoSourceFeatureExtractor
+from .classification import (
+    ClassificationClassDistributionVsArea,
+    ClassificationClassDistributionVsAreaPlot,
+    ClassificationClassFrequency,
+    ClassificationSummaryStats,
+)
+from .common import ImageColorDistribution, ImageDuplicates, ImagesAverageBrightness, ImagesResolution, SummaryStats
+from .object_detection import (
+    DetectionBoundingBoxArea,
+    DetectionBoundingBoxIoU,
+    DetectionBoundingBoxPerImageCount,
+    DetectionBoundingBoxSize,
+    DetectionClassesPerImageCount,
+    DetectionClassFrequency,
+    DetectionClassHeatmap,
+    DetectionResizeImpact,
+    DetectionSampleVisualization,
+)
 from .object_detection.similarity import DetectionClassSimilarity
 from .segmentation import (
     SegmentationBoundingBoxArea,
     SegmentationBoundingBoxResolution,
+    SegmentationClassesPerImageCount,
     SegmentationClassFrequency,
     SegmentationClassHeatmap,
-    SegmentationClassesPerImageCount,
     SegmentationComponentsConvexity,
     SegmentationComponentsErosion,
     SegmentationComponentsPerImageCount,
     SegmentationSampleVisualization,
 )
-from .object_detection import (
-    DetectionBoundingBoxArea,
-    DetectionBoundingBoxPerImageCount,
-    DetectionBoundingBoxSize,
-    DetectionClassFrequency,
-    DetectionClassHeatmap,
-    DetectionClassesPerImageCount,
-    DetectionSampleVisualization,
-    DetectionBoundingBoxIoU,
-    DetectionResizeImpact,
-)
-
-from .classification import (
-    ClassificationClassFrequency,
-    ClassificationSummaryStats,
-    ClassificationClassDistributionVsArea,
-    ClassificationClassDistributionVsAreaPlot,
-)
 
 __all__ = [
     "ImageDuplicates",
     "AbstractFeatureExtractor",
+    "FeatureExtractorsType",
+    "NoSourceFeatureExtractor",
     "ImagesAverageBrightness",
     "ImageColorDistribution",
     "ImagesResolution",

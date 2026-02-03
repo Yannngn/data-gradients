@@ -1,23 +1,40 @@
-import os
+import json
 import re
 import shutil
-import json
-from typing import Dict, Mapping, List
+from collections.abc import Mapping
+from pathlib import Path
+from typing import TypeAlias
+
+import numpy as np
+
+PathLike: TypeAlias = str | Path
 
 
-def write_json(path: str, json_dict: Dict):
+def write_json(path: PathLike, json_dict: dict):
     """Write a json dictionary to a file.
     :param path:        Path to the file. Can be absolute or relative. Should contain '.json' extension.
     :param json_dict:   Dictionary to be written to the file. Should be serializable.
     """
-    full_path = os.path.abspath(path)
-    dirname = os.path.dirname(full_path)
-    os.makedirs(dirname, exist_ok=True)
-    with open(full_path, "w") as f:
-        json.dump(json_dict, f, indent=4)
+    full_path = Path(path).absolute()
+    dirname = full_path.parent
+    dirname.mkdir(parents=True, exist_ok=True)
+
+    def _default(o):
+        # Numpy types -> native python types
+        if isinstance(o, np.integer):
+            return int(o)
+        if isinstance(o, np.floating):
+            return float(o)
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+        # Fallback to string representation
+        return str(o)
+
+    with full_path.open("w") as f:
+        json.dump(json_dict, f, indent=4, default=_default)
 
 
-def class_names(mapping, hist: Dict):
+def class_names(mapping, hist: dict):
     if mapping is None:
         return hist
 
@@ -30,7 +47,7 @@ def class_names(mapping, hist: Dict):
     return new_hist
 
 
-def fuzzy_keys(params: Mapping) -> List[str]:
+def fuzzy_keys(params: Mapping) -> list[str]:
     """
     Returns params.key() removing leading and trailing white space, lower-casing and dropping symbols.
     :param params: Mapping, the mapping containing the keys to be returned.
@@ -59,7 +76,7 @@ def get_fuzzy_mapping_param(name: str, params: Mapping):
     return fuzzy_params[fuzzy_str(name)]
 
 
-def copy_files_by_list(file_list: List[str], source_dir: str, dest_dir: str) -> None:
+def copy_files_by_list(file_list: list[str], source_dir: PathLike, dest_dir: PathLike) -> None:
     """Copy a list of files from the source directory to the destination directory.
 
     :param file_list:   List of filenames to be copied.
@@ -67,18 +84,21 @@ def copy_files_by_list(file_list: List[str], source_dir: str, dest_dir: str) -> 
     :param dest_dir:    Path of the destination directory.
     """
     for file_name in file_list:
-        source_file_path = os.path.join(source_dir, file_name)
-        os.makedirs(dest_dir, exist_ok=True)
-        if os.path.isfile(source_file_path):
-            dest_file_path = os.path.join(dest_dir, file_name)
+        source_file_path = Path(source_dir) / file_name
+        # Ensure parent directory exists
+        source_file_path.parent.mkdir(parents=True, exist_ok=True)
+        if source_file_path.is_file():
+            dest_file_path = Path(dest_dir) / file_name
+            dest_file_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(source_file_path, dest_file_path)
 
 
-def safe_json_load(path: str) -> Dict:
-    if not os.path.exists(path):
+def safe_json_load(path: PathLike) -> dict:
+    path = Path(path)
+    if not path.exists():
         return {}
     try:
-        with open(path, "r") as f:
+        with path.open("r") as f:
             return json.load(f)
     except json.decoder.JSONDecodeError:
         return {}

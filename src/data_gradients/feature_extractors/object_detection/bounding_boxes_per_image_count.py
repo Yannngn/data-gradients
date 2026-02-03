@@ -1,15 +1,14 @@
 import pandas as pd
 
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
+from data_gradients.common.registry.registry import register_feature_extractor
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.utils.common import LABELS_PALETTE
 from data_gradients.utils.data_classes import DetectionSample
 from data_gradients.visualize.plot_options import Hist2DPlotOptions
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
-from data_gradients.common.registry.registry import register_feature_extractor
 
 
 @register_feature_extractor()
-class DetectionBoundingBoxPerImageCount(AbstractFeatureExtractor):
+class DetectionBoundingBoxPerImageCount(NoSourceFeatureExtractor):
     """
     Feature Extractor to count the number of Bounding Boxes per Image.
 
@@ -49,10 +48,10 @@ class DetectionBoundingBoxPerImageCount(AbstractFeatureExtractor):
             labels_palette=LABELS_PALETTE,
         )
 
-        json = dict(
-            train=dict(df[df["split"] == "train"]["n_bbox"].describe()),
-            val=dict(df[df["split"] == "val"]["n_bbox"].describe()),
-        )
+        json = {
+            "train": df[df["split"] == "train"]["n_bbox"].describe().to_dict(),
+            "val": df[df["split"] == "val"]["n_bbox"].describe().to_dict(),
+        }
 
         feature = Feature(
             data=df,

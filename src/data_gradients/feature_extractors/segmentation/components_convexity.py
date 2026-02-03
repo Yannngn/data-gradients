@@ -1,14 +1,14 @@
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.sample_preprocessor.utils import contours
 from data_gradients.utils.data_classes import SegmentationSample
 from data_gradients.visualize.seaborn_renderer import KDEPlotOptions
 
 
 @register_feature_extractor()
-class SegmentationComponentsConvexity(AbstractFeatureExtractor):
+class SegmentationComponentsConvexity(NoSourceFeatureExtractor):
     """
     Assesses the convexity of segmented objects within images of a dataset and presents the distribution across dataset splits.
 
@@ -19,7 +19,7 @@ class SegmentationComponentsConvexity(AbstractFeatureExtractor):
         self.data = []
 
     def update(self, sample: SegmentationSample):
-        for j, class_channel in enumerate(sample.contours):
+        for class_channel in sample.contours:
             for contour in class_channel:
                 convex_hull = contours.get_convex_hull(contour)
                 convex_hull_perimeter = contours.get_contour_perimeter(convex_hull)
@@ -44,10 +44,10 @@ class SegmentationComponentsConvexity(AbstractFeatureExtractor):
             sharey=True,
         )
 
-        json = dict(
-            train=dict(df[df["split"] == "train"]["convexity_measure"].describe()),
-            val=dict(df[df["split"] == "val"]["convexity_measure"].describe()),
-        )
+        json = {
+            "train": df[df["split"] == "train"]["convexity_measure"].describe().to_dict(),
+            "val": df[df["split"] == "val"]["convexity_measure"].describe().to_dict(),
+        }
 
         feature = Feature(
             data=df,

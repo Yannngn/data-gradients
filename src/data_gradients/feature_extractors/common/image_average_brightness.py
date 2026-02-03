@@ -1,3 +1,5 @@
+from collections.abc import Iterable
+
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
@@ -19,6 +21,13 @@ class ImagesAverageBrightness(AbstractFeatureExtractor):
     def __init__(self):
         self.image_channels = None
         self.data = []
+
+    def setup_data_sources(self, train_data: Iterable, val_data: Iterable):
+        """
+        Store train/validation data references for potential use in aggregation.
+        """
+        self._train_data = train_data
+        self._val_data = val_data
 
     def update(self, sample: ImageSample):
         self.data.append({"split": sample.split, "brightness": sample.image.mean_intensity})
@@ -50,9 +59,10 @@ class ImagesAverageBrightness(AbstractFeatureExtractor):
                 sharey=True,
             )
 
-        json = dict(
-            train=dict(df[df["split"] == "train"]["brightness"].describe()), val=dict(df[df["split"] == "val"]["brightness"].describe())
-        )
+        json = {
+            "train": dict(df[df["split"] == "train"]["brightness"].describe()),
+            "val": dict(df[df["split"] == "val"]["brightness"].describe()),
+        }
 
         feature = Feature(
             data=df,

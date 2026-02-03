@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
+from collections.abc import Sequence
 
 import numpy as np
 import torch
@@ -13,25 +13,29 @@ logger = logging.getLogger(__name__)
 class DatasetFormatError(Exception): ...
 
 
-def ensure_channel_first(images: torch.Tensor | np.ndarray, n_image_channels: int) -> torch.Tensor | np.ndarray:
+def ensure_channel_first(images: torch.Tensor | np.ndarray | Sequence, n_image_channels: int) -> torch.Tensor:
     """Images should be [BS, C, H, W]. If [BS, W, H, C], permute
 
     :param images:              Tensor
     :param n_image_channels:    Number of image channels (3 for RGB, 1 for grayscale)
     :return: images:            Tensor [BS, C, H, W]
     """
+    images = images if isinstance(images, torch.Tensor) else torch.tensor(images)
     if images.shape[1] != n_image_channels and images.shape[-1] == n_image_channels:
-        images = channels_last_to_first(images)
+        return channels_last_to_first(images)
+
     return images
 
 
-def check_images_shape(images: torch.Tensor | np.ndarray, n_image_channels: int) -> torch.Tensor | np.ndarray:
+def check_images_shape(images: torch.Tensor | np.ndarray | Sequence, n_image_channels: int) -> torch.Tensor:
     """Validate images dimensions are (BS, C, H, W)
 
     :param images:              Tensor [BS, C, H, W]
     :param n_image_channels:    Number of image channels (C = 3 for RGB, C = 1 for grayscale)
     :return: images:            Tensor [BS, C, H, W]
     """
+    images = images if isinstance(images, torch.Tensor) else torch.tensor(images)
+
     if images.dim() != 4:
         raise ValueError(f"Images batch shape should be (BatchSize x Channels x Width x Height). Got {images.shape}")
 
@@ -55,9 +59,9 @@ class ImageFormat(ABC):
         """Serializes the normalizer to JSON."""
         pass
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def from_json(json_data: dict) -> Optional["ImageFormat"]:
+    def from_json(cls, json_data: dict) -> "ImageFormat | None":
         """Deserializes the normalizer from JSON."""
         pass
 
@@ -72,8 +76,8 @@ class FloatImageFormat(ImageFormat):
     def to_json(self) -> dict:
         return {"type": "FloatImageFormat", "description": "The images in your dataset have values set between [0-1]."}
 
-    @staticmethod
-    def from_json(json_data: dict) -> "FloatImageFormat":
+    @classmethod
+    def from_json(cls, json_data: dict) -> "FloatImageFormat | None":
         return FloatImageFormat()
 
 
@@ -90,8 +94,8 @@ class Uint8ImageFormat(ImageFormat):
     def to_json(self) -> dict:
         return {"type": "Uint8ImageFormat", "description": "The images in your dataset have values set between [0-255]."}
 
-    @staticmethod
-    def from_json(json_data: dict) -> "Uint8ImageFormat":
+    @classmethod
+    def from_json(cls, json_data: dict) -> "Uint8ImageFormat":
         return Uint8ImageFormat()
 
 
@@ -123,9 +127,9 @@ class ScaledFloatImageFormat(ImageFormat):
         }
 
     @classmethod
-    def from_json(cls, json_data: dict) -> Optional["ScaledFloatImageFormat"]:
+    def from_json(cls, json_data: dict) -> "ScaledFloatImageFormat | None":
         if "data" not in json_data or "mean" not in json_data["data"] or "std" not in json_data["data"]:
-            logger.warn(
+            logger.warning(
                 "It looks like the cache of your image normalizer does not include any information about the mean and standard deviation."
                 "This may be due to invalid cache format, and therefore normalizer will not be loaded from cache."
             )
@@ -143,7 +147,13 @@ class ImageFormatFactory:
     @staticmethod
     def get_normalizer_from_cache(json_data: dict) -> ImageFormat | None:
         image_format_type = json_data.get("type")
+
+        if image_format_type is None:
+            return None
+
         image_format_class = ImageFormatFactory._normalizers.get(image_format_type)
+
         if image_format_class:
             return image_format_class.from_json(json_data)
+
         return None
