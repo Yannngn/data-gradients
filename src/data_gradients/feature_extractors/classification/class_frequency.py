@@ -1,17 +1,16 @@
-from typing import Optional
+import json
 
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.feature_extractors.utils import MostImportantValuesSelector
 from data_gradients.utils.data_classes.data_samples import ClassificationSample
 from data_gradients.visualize.seaborn_renderer import BarPlotOptions
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
 
 
 @register_feature_extractor()
-class ClassificationClassFrequency(AbstractFeatureExtractor):
+class ClassificationClassFrequency(NoSourceFeatureExtractor):
     """
     Analyzes and visualizes the frequency of each class label across different dataset splits.
 
@@ -19,7 +18,7 @@ class ClassificationClassFrequency(AbstractFeatureExtractor):
     balance or imbalance of class distribution across training and validation.
     """
 
-    def __init__(self, topk: Optional[int] = None, prioritization_mode: str = "train_val_diff"):
+    def __init__(self, topk: int | None = None, prioritization_mode: str = "train_val_diff"):
         """
         :param topk:                How many rows (per split) to show.
         :param prioritization_mode: Strategy to use to chose which class will be prioritized. Only the topk will be shown
@@ -27,7 +26,8 @@ class ClassificationClassFrequency(AbstractFeatureExtractor):
                 - 'outliers':       Returns the top k rows with the most extreme average values.
                 - 'max':            Returns the top k rows with the highest average values.
                 - 'min':            Returns the top k rows with the lowest average values.
-                - 'min_max':        Returns the (top k)/2 rows with the biggest average values, and the (top k)/2 with the smallest average values.
+                - 'min_max':        Returns the (top k)/2 rows with the biggest average values, and the (top k)/2 with the smallest average
+                                    values.
         """
         if topk:
             self.value_extractor = MostImportantValuesSelector(topk=topk, prioritization_mode=prioritization_mode)
@@ -78,12 +78,12 @@ class ClassificationClassFrequency(AbstractFeatureExtractor):
             tight_layout=True,
         )
 
-        json = df_class_count.to_json(orient="records")
+        json_data = json.loads(df_class_count.to_json(orient="records"))
 
         feature = Feature(
             data=df_class_count,
             plot_options=plot_options,
-            json=json,
+            json=json_data,
             title="Class Frequency",
             description=(
                 "This bar plot represents the frequency of appearance of each class. "

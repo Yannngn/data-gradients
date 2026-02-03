@@ -1,7 +1,7 @@
-import pkg_resources
+from importlib.resources import files
 
-from data_gradients.assets.assets_container import Assets, AssetNotFoundException
+from data_gradients.assets.assets_container import AssetNotFoundException, Assets
 
-assets = Assets(pkg_resources.resource_filename("data_gradients.assets", ""))
+assets = Assets(str(files("data_gradients.assets")))
 
 __all__ = ["assets", "AssetNotFoundException"]

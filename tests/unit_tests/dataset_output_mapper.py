@@ -1,11 +1,12 @@
 import os.path
-import unittest
-import tempfile
 import shutil
+import tempfile
+import unittest
 
 import numpy as np
-from PIL import Image
 import torch
+from PIL import Image
+
 from data_gradients.dataset_adapters.output_mapper.dataset_output_mapper import DatasetOutputMapper
 
 
@@ -23,7 +24,7 @@ class TestImageConverter(unittest.TestCase):
         shutil.rmtree(self.tmp_dir)
 
     def test_int_input(self):
-        tensor = 3
+        tensor = "3"
         output = DatasetOutputMapper._to_torch(tensor)
         self.assertTrue(torch.equal(output, torch.tensor(tensor, dtype=torch.int64)))
 
@@ -74,10 +75,10 @@ class TestImageConverter(unittest.TestCase):
 
     def test_unsupported_type_input(self):
         with self.assertRaises(TypeError):
-            DatasetOutputMapper._to_torch({"unsupported": "type"})
+            DatasetOutputMapper._to_torch({"unsupported": "type"})  # type: ignore[expected-error]
 
     def test_invalid_image_path(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(FileNotFoundError):
             DatasetOutputMapper._to_torch("invalid_path.jpg")
 
     def test_edge_cases(self):
@@ -87,7 +88,7 @@ class TestImageConverter(unittest.TestCase):
         self.assertEqual(output.shape, (100, 100))
 
         # Empty list
-        with self.assertRaises(Exception):  # Depending on your function's behavior for empty lists
+        with self.assertRaises(ValueError):  # Expect a ValueError for empty inputs
             DatasetOutputMapper._to_torch([])
 
 

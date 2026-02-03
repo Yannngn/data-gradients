@@ -1,9 +1,7 @@
-from typing import Tuple, List
-
 from matplotlib import pyplot as plt
 
 
-def best_text_color(background_color: Tuple[int, int, int]) -> Tuple[int, int, int]:
+def best_text_color(background_color: tuple[int, int, int]) -> tuple[int, int, int]:
     """Determine the best color for text to be visible on a given background color.
 
     :param background_color: RGB values of the background color.
@@ -17,7 +15,7 @@ def best_text_color(background_color: Tuple[int, int, int]) -> Tuple[int, int, i
         return (255, 255, 255)  # White
 
 
-def compute_brightness(color: Tuple[int, int, int]) -> float:
+def compute_brightness(color: tuple[int, int, int]) -> float:
     """Computes the brightness of a given color in RGB format. From https://alienryderflex.com/hsp.html
 
     :param color: A tuple of three integers representing the RGB values of the color.
@@ -26,7 +24,7 @@ def compute_brightness(color: Tuple[int, int, int]) -> float:
     return (0.299 * color[0] + 0.587 * color[1] + 0.114 * color[0]) / 255
 
 
-def generate_color_mapping(num_classes: int) -> List[Tuple[int, ...]]:
+def generate_color_mapping(num_classes: int) -> list[tuple[int, ...]]:
     """Generate a unique BGR color for each class
 
     :param num_classes: The number of classes in the dataset.
@@ -37,7 +35,7 @@ def generate_color_mapping(num_classes: int) -> List[Tuple[int, ...]]:
     return [tuple(int(v) for v in c) for c in colors]
 
 
-def generate_gray_color_mapping(num_classes: int) -> List[Tuple[int, int, int]]:
+def generate_gray_color_mapping(num_classes: int) -> list[tuple[int, int, int]]:
     """Generate a grayscale color mapping for each class.
 
     :param num_classes: The number of classes in the dataset.

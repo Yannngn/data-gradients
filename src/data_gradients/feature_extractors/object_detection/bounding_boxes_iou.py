@@ -4,13 +4,13 @@ import torch
 from torchvision.ops import box_iou
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.utils.data_classes import DetectionSample
 from data_gradients.visualize.plot_options import HeatmapOptions
 
 
 @register_feature_extractor()
-class DetectionBoundingBoxIoU(AbstractFeatureExtractor):
+class DetectionBoundingBoxIoU(NoSourceFeatureExtractor):
     """Computes the pairwise Intersection over Union (IoU) for bounding boxes within each image to
     identify potential duplicate or highly overlapping annotations.
 
@@ -65,7 +65,7 @@ class DetectionBoundingBoxIoU(AbstractFeatureExtractor):
         df = pd.DataFrame(self.data).sort_values(by="class_id")
 
         bins = np.linspace(0, 1, self.num_bins + 1)
-        df["iou_bins"] = np.digitize(df["iou"].values, bins=bins)
+        df["iou_bins"] = np.digitize(df["iou"].to_numpy(), bins=bins)
 
         class_names = list(df["class_name"].unique())
 

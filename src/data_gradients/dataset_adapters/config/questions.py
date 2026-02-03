@@ -73,7 +73,7 @@ class FixedOptionsQuestion(Question):
 def is_notebook() -> bool:
     """Determines if the current environment is a Jupyter notebook."""
     try:
-        from IPython import get_ipython
+        from IPython.core.getipython import get_ipython
 
         shell = get_ipython().__class__.__name__
         if shell == "ZMQInteractiveShell":
@@ -89,7 +89,10 @@ def is_notebook() -> bool:
 
 
 def ask_via_stdin(
-    question: str, optional_description: str, validate_func: callable | None = None, input_message: str = "Enter your response >>> "
+    question: str,
+    optional_description: str,
+    validate_func: Callable[..., bool] | None = None,
+    input_message: str = "Enter your response >>> ",
 ) -> str:
     """
     Get user input from the command line with optional validation.
@@ -146,14 +149,21 @@ def ask_option_via_stdin(question: FixedOptionsQuestion, hint: str) -> Any:
     :return:            User's selected option.
     """
     options_display = "\n".join(
-        [f"[{text_to_blue(idx)}] | {option_description}" for idx, option_description in enumerate(question.options.keys())]
+        [f"[{text_to_blue(str(idx))}] | {option_description}" for idx, option_description in enumerate(question.options.keys())]
     )
     description = f"{hint if hint else ''}\n{text_to_blue('Options')}:\n{options_display}"
 
-    validate_func = lambda x: x.isdigit() and 0 <= int(x) <= len(question.options) - 1
+    def validate_option(x: str) -> bool:
+        return x.isdigit() and 0 <= int(x) <= len(question.options) - 1
+
     input_message = f"Your selection (Enter the {text_to_blue('corresponding number')}) >>> "
     selected_index = int(
-        ask_via_stdin(question=question.question, optional_description=description, validate_func=validate_func, input_message=input_message)
+        ask_via_stdin(
+            question=question.question,
+            optional_description=description,
+            validate_func=validate_option,
+            input_message=input_message,
+        )
     )
 
     options_descriptions, options_values = zip(*question.options.items(), strict=False)
@@ -234,21 +244,21 @@ def ask_option_via_jupyter(question: FixedOptionsQuestion, hint: str) -> str:
     user_selected_index: int | None = None
 
     # Create a box to group the hint, the options as buttons, and any outputs
-    box = widgets.VBox([])
+    box: widgets.VBox = widgets.VBox([])
 
     if hint:
         hint_label = widgets.Label(value=hint)
         box.children = [hint_label]
 
-    buttons = []
-    outputs = []
+    buttons: list[widgets.Button] = []
+    outputs: list[widgets.Output] = []
 
     for idx, option in enumerate(options):
-        button = widgets.Button(description=option, layout=widgets.Layout(width="100%"))
-        output = widgets.Output()
+        button: widgets.Button = widgets.Button(description=option, layout=widgets.Layout(width="100%"))
+        output: widgets.Output = widgets.Output()
 
         def create_callback(index):
-            def callback(button):
+            def callback(button: widgets.Button):
                 nonlocal user_selected_index
                 user_selected_index = index
 
@@ -259,7 +269,7 @@ def ask_option_via_jupyter(question: FixedOptionsQuestion, hint: str) -> str:
         outputs.append(output)
 
     # Combine buttons and their outputs for display
-    combined_widgets = [widget for pair in zip(buttons, outputs, strict=False) for widget in pair]
+    combined_widgets: list[widgets.Widget] = [widget for pair in zip(buttons, outputs, strict=False) for widget in pair]
 
     # Append the option buttons and outputs to the box
     box.children += tuple(combined_widgets)

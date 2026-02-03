@@ -1,13 +1,19 @@
-from typing import Union, Tuple, List, Mapping, Dict, Type
+from __future__ import annotations
 
-from data_gradients.feature_extractors import AbstractFeatureExtractor
+from collections.abc import Callable, Mapping
+from pathlib import Path
+from typing import TypeAlias
 
-SupportedDataType = Union[Tuple, List, Mapping]
-JSONValue = Union[str, int, float, bool, None, Dict[str, Union["JSONValue", List["JSONValue"]]]]
-JSONDict = Dict[str, JSONValue]
-FeatureExtractorsType = Union[
-    List[Union[str, AbstractFeatureExtractor, Type[AbstractFeatureExtractor]]],
-    str,
-    AbstractFeatureExtractor,
-    Type[AbstractFeatureExtractor],
-]
+import numpy.typing as npt
+import torch
+
+SupportedDataType: TypeAlias = tuple | list | Mapping
+JSONValue: TypeAlias = str | int | float | bool | None | dict[str, "JSONValue | list[JSONValue]"]
+JSONDict: TypeAlias = dict[str, JSONValue]
+
+
+ClassNamesToUseType: TypeAlias = list[str] | tuple[str] | npt.NDArray | torch.Tensor
+ClassNamesType: TypeAlias = ClassNamesToUseType | Mapping[int, str]
+
+ExtractorType: TypeAlias = str | Callable[[SupportedDataType], torch.Tensor]
+PathLike: TypeAlias = str | Path

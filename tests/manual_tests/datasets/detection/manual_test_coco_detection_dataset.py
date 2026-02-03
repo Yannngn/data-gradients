@@ -1,10 +1,10 @@
 import unittest
+from pathlib import Path
 
 from torch.utils.data import DataLoader
 
-from data_gradients.managers.detection_manager import DetectionAnalysisManager
 from data_gradients.datasets.detection import COCODetectionDataset
-
+from data_gradients.managers.detection_manager import DetectionAnalysisManager
 
 COCO_DETECTION_CLASSES_LIST = [
     "person",
@@ -92,8 +92,6 @@ COCO_DETECTION_CLASSES_LIST = [
 
 class TinyCOCODetectionDatasetTest(unittest.TestCase):
     def setUp(self):
-        from pathlib import Path
-
         mini_coco_data_dir = str(Path(__file__).parent.parent.parent.parent.parent / "example_dataset" / "tinycoco")
         self.train_set = COCODetectionDataset(root_dir=mini_coco_data_dir, split="train", year=2017)
         self.val_set = COCODetectionDataset(root_dir=mini_coco_data_dir, split="val", year=2017)

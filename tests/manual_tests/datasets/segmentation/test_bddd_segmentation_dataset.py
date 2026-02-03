@@ -1,17 +1,17 @@
 import unittest
+from pathlib import Path
 
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, ToTensor
 
+from data_gradients.dataset_adapters.formatters.utils import FloatImageFormat
 from data_gradients.datasets.bdd_dataset import BDDDataset
 from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 
 
 class BDDDSegmentationDatasetTest(unittest.TestCase):
     def setUp(self):
-        from pathlib import Path
-
-        bdd_example_data_dir = str(Path(__file__).parent.parent.parent.parent.parent / "example_dataset" / "bdd_example")
+        bdd_example_data_dir = str(Path(__file__).resolve().parents[5] / "example_dataset" / "bdd_example")
         self.train_set = BDDDataset(
             data_folder=bdd_example_data_dir,
             split="train",
@@ -35,6 +35,7 @@ class BDDDSegmentationDatasetTest(unittest.TestCase):
             use_cache=False,
             batches_early_stop=5,
             is_batch=False,
+            image_format=FloatImageFormat(),
         )
         da.run()
 
@@ -48,9 +49,15 @@ class BDDDSegmentationDatasetTest(unittest.TestCase):
             use_cache=False,
             batches_early_stop=5,
             is_batch=True,
+            image_format=FloatImageFormat(),
         )
         da.run()
 
 
 if __name__ == "__main__":
     unittest.main()
+
+###
+###
+###
+###

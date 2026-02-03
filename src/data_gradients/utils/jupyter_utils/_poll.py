@@ -2,23 +2,17 @@ import asyncio
 import sys
 import time
 from collections import abc
+from collections.abc import AsyncIterable, AsyncIterator, Callable, Iterable, Iterator
 from functools import singledispatch
 from inspect import isawaitable, iscoroutinefunction
 from typing import (
     Any,
-    AsyncIterable,
-    AsyncIterator,
-    Callable,
     Generic,
-    Iterable,
-    Iterator,
-    List,
     Optional,
-    Tuple,
     TypeVar,
 )
 
-from IPython import get_ipython
+from IPython.core.getipython import get_ipython
 
 from ._async_thread import AsyncThread
 
@@ -40,7 +34,7 @@ class KernelWrapper:
             kernel._parent_ident,
             kernel.get_parent() if hasattr(kernel, "get_parent") else kernel._parent_header,  # ipykernel 6+  # ipykernel < 6
         )
-        self._events: List[Tuple[Any, Any, Any]] = []
+        self._events: list[tuple[Any, Any, Any]] = []
         self._backup_execute_request = kernel.shell_handlers["execute_request"]
         self._aproc = None
 
@@ -130,6 +124,8 @@ class KernelWrapper:
         return self._aproc.wrap(self._poll_async)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._aproc is None:
+            return
         self._aproc.terminate()
         self._aproc = None
 
@@ -223,7 +219,7 @@ def ui_events():
 
 
 @singledispatch
-def with_ui_events(its, n: int = 1):
+def with_ui_events(its: Any, n: int = 1) -> Any:
     """
     Deal with kernel ui events while processing a long sequence
 
@@ -277,7 +273,7 @@ def with_ui_events_async(its: AsyncIterable[T], n: int = 1) -> AsyncIterable[T]:
     return IteratorWrapperAsync(its, n=n)
 
 
-def run_ui_poll_loop(f: Callable[[], Optional[T]], sleep: float = 0.02, n: int = 1) -> T:
+def run_ui_poll_loop(f: Callable[[], T | None], sleep: float = 0.02, n: int = 1) -> T:
     """
     Repeatedly call ``f()`` until it returns something other than ``None``
     while also responding to widget events.
@@ -298,7 +294,7 @@ def run_ui_poll_loop(f: Callable[[], Optional[T]], sleep: float = 0.02, n: int =
        First non-``None`` value returned from ``f()``
     """
 
-    def as_iterator(f: Callable[[], Optional[T]], sleep: float) -> Iterator[Optional[T]]:
+    def as_iterator(f: Callable[[], T | None], sleep: float) -> Iterator[T | None]:
         x = None
         while x is None:
             if sleep is not None:

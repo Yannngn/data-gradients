@@ -1,9 +1,7 @@
-from typing import Optional
-
 from data_gradients.dataset_adapters.base_adapter import BaseDatasetAdapter
-from data_gradients.dataset_adapters.output_mapper.dataset_output_mapper import DatasetOutputMapper
-from data_gradients.dataset_adapters.formatters.detection import DetectionBatchFormatter
 from data_gradients.dataset_adapters.config.data_config import DetectionDataConfig
+from data_gradients.dataset_adapters.formatters.detection import DetectionBatchFormatter
+from data_gradients.dataset_adapters.output_mapper.dataset_output_mapper import DatasetOutputMapper
 
 
 class DetectionDatasetAdapter(BaseDatasetAdapter):
@@ -11,7 +9,7 @@ class DetectionDatasetAdapter(BaseDatasetAdapter):
     :param data_config:         Instance of DetectionDataConfig class that manages dataset/dataloader configurations.
     """
 
-    def __init__(self, data_config: Optional[DetectionDataConfig] = None):
+    def __init__(self, data_config: DetectionDataConfig):
         dataset_output_mapper = DatasetOutputMapper(data_config=data_config)
         formatter = DetectionBatchFormatter(data_config=data_config)
         super().__init__(dataset_output_mapper=dataset_output_mapper, formatter=formatter, data_config=data_config)

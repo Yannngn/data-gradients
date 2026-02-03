@@ -1,4 +1,4 @@
-import os.path
+from pathlib import Path
 from typing import Any
 
 import hydra
@@ -7,14 +7,15 @@ from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig, OmegaConf
 
 from data_gradients.common.factories import FeatureExtractorsFactory, ListFactory
-from data_gradients.dataset_adapters.config.typing_utils import FeatureExtractorsType
-from data_gradients.feature_extractors import AbstractFeatureExtractor
+from data_gradients.dataset_adapters.config.typing_utils import PathLike
+from data_gradients.feature_extractors import AbstractFeatureExtractor, FeatureExtractorsType
 
 OmegaConf.register_new_resolver("merge", lambda x, y: x + y)
+OMEGA_CONF_BASE_VERSION = "1.2"
 
 
 def load_report_feature_extractors(
-    config_name: str, config_dir: str | None = None, overrides: dict[str, Any] | None = None
+    config_name: str, config_dir: PathLike | None = None, overrides: dict[str, Any] | None = None
 ) -> dict[str, list[AbstractFeatureExtractor]]:
     """Load and instantiate extractors from a Hydra configuration file.
 
@@ -27,55 +28,58 @@ def load_report_feature_extractors(
     """
     cfg = load_config(config_name=config_name, config_dir=config_dir, overrides=overrides)
     grouped_feature_extractors = {}
+
     for section in cfg["report_sections"]:
         section_name, feature_extractors = section["name"], section["features"]
         grouped_feature_extractors[section_name] = ListFactory(FeatureExtractorsFactory()).get(feature_extractors)
+
     return grouped_feature_extractors
 
 
 def get_grouped_feature_extractors(
     default_config_name: str,
-    config_path: str,
-    feature_extractors: FeatureExtractorsType,
+    feature_extractors: FeatureExtractorsType | None,
+    config_path: PathLike | None = None,
 ) -> dict[str, list[AbstractFeatureExtractor]]:
     if feature_extractors is None:
         if config_path is None:
             config_dir, config_name = None, default_config_name
         else:
-            config_path = os.path.abspath(config_path)
-            config_dir, config_name = (
-                os.path.dirname(config_path),
-                os.path.basename(config_path).split(".")[0],
-            )
-        grouped_feature_extractors = load_report_feature_extractors(config_name=config_name, config_dir=config_dir)
-    else:
-        if not isinstance(feature_extractors, list):
-            feature_extractors = [feature_extractors]
+            config_path = Path(config_path).absolute()
+            config_dir, config_name = (config_path.parent, config_path.stem)
 
-        section_name = "Selected features"
-        grouped_feature_extractors = {section_name: []}
-        for feature_extractor in feature_extractors:
-            if isinstance(feature_extractor, AbstractFeatureExtractor):
-                grouped_feature_extractors[section_name].append(feature_extractor)
-            elif isinstance(feature_extractor, str):
-                grouped_feature_extractors[section_name].append(FeatureExtractorsFactory().get(feature_extractor))
-            elif issubclass(feature_extractor, AbstractFeatureExtractor):
-                try:
-                    grouped_feature_extractors[section_name].append(feature_extractor())
-                except RuntimeError as e:
-                    raise RuntimeError(
-                        f"The feature extractor {feature_extractor.__class__} requires additional init argument. "
-                        f"Initialize the feature extractor and pass it as an instance"
-                    ) from e
-            else:
-                raise TypeError(
-                    "Unsupported feature extractor type. Supported types are string (name of FeatureExtractor) or AbstractFeatureExtractor"
-                )
+        return load_report_feature_extractors(config_name=config_name, config_dir=config_dir)
+
+    if not isinstance(feature_extractors, list):
+        feature_extractors = [feature_extractors]
+
+    section_name = "Selected features"
+    grouped_feature_extractors = {section_name: []}
+    for feature_extractor in feature_extractors:
+        if isinstance(feature_extractor, AbstractFeatureExtractor):
+            grouped_feature_extractors[section_name].append(feature_extractor)
+            continue
+
+        if isinstance(feature_extractor, str):
+            grouped_feature_extractors[section_name].append(FeatureExtractorsFactory().get(feature_extractor))
+            continue
+
+        if issubclass(feature_extractor, AbstractFeatureExtractor):
+            try:
+                grouped_feature_extractors[section_name].append(feature_extractor())
+            except RuntimeError as e:
+                raise RuntimeError(
+                    f"The feature extractor {feature_extractor.__class__} requires additional init argument. "
+                    f"Initialize the feature extractor and pass it as an instance"
+                ) from e
+            continue
+
+        raise TypeError("Unsupported feature extractor type. Supported types are string (name of FeatureExtractor) or AbstractFeatureExtractor")
 
     return grouped_feature_extractors
 
 
-def load_config(config_name: str, config_dir: str, overrides: dict[str, Any] | None = None) -> DictConfig:
+def load_config(config_name: str, config_dir: PathLike | None = None, overrides: dict[str, Any] | None = None) -> DictConfig:
     """Load a Hydra configuration file and instantiate it.
 
     :param config_name: Name of the Hydra configuration file to load.
@@ -84,13 +88,13 @@ def load_config(config_name: str, config_dir: str, overrides: dict[str, Any] | N
     :return:            An instantiated configuration object.
     """
 
-    config_dir = config_dir or os.path.dirname(__file__)
+    config_dir = config_dir or Path(__file__).parent
     overrides = overrides or {}
 
     dotlist_overrides = dict_to_dotlist_overrides(overrides)
 
     GlobalHydra.instance().clear()
-    with initialize_config_dir(config_dir=config_dir, version_base="1.2"):
+    with initialize_config_dir(config_dir=str(config_dir), version_base=OMEGA_CONF_BASE_VERSION):
         cfg = compose(config_name=config_name, overrides=dotlist_overrides)
     return hydra.utils.instantiate(cfg)
 
@@ -108,8 +112,9 @@ def dict_to_dotlist_overrides(dict_params: dict[str, Any]) -> list[str]:
     for key, value in dict_to_dotlist(dict_params):
         if value is None:
             out.append(f"{key}=null")
-        else:
-            out.append(f"{key}={value}")
+            continue
+
+        out.append(f"{key}={value}")
     return out
 
 
@@ -136,3 +141,7 @@ def dict_to_dotlist(dict_params: dict[str, Any]) -> list[tuple[str, Any]]:
         else:
             dotlist_params.append((key, value))
     return dotlist_params
+
+    #
+
+    #

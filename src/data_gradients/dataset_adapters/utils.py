@@ -15,11 +15,11 @@ def check_all_finite(tensor: torch.Tensor) -> bool:
     """
     Check if all elements in the tensor are finite (not NaN or Inf).
     """
-    return torch.all(torch.isfinite(tensor)).item()
+    return bool(torch.all(torch.isfinite(tensor)).item())
 
 
 def check_all_integers(tensor: torch.Tensor) -> bool:
-    return torch.all(torch.eq(tensor, tensor.to(torch.int))).item()
+    return bool(torch.all(torch.eq(tensor, tensor.to(torch.int))).item())
 
 
 def to_one_hot(labels: torch.Tensor, n_classes: int) -> torch.Tensor:

@@ -1,10 +1,11 @@
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Optional, Any, Union, Callable
+from typing import Any
 
 import torch
 
-from data_gradients.dataset_adapters.output_mapper.tensor_extractor import NestedDataLookup
 from data_gradients.dataset_adapters.config.typing_utils import SupportedDataType
+from data_gradients.dataset_adapters.output_mapper.tensor_extractor import NestedDataLookup
 from data_gradients.utils.detection import XYXYConverter
 
 # This is used as a prefix to recognize parameters that are not cachable.
@@ -33,13 +34,13 @@ class CachableParam:
     :attr name:     The name of the parameter, will be used to load/save cache.
     """
 
-    value: Optional[Any]
-    name: Optional[str]
+    value: Any | None
+    name: str | None
 
 
 class TensorExtractorResolver:
     @staticmethod
-    def to_callable(tensor_extractor: Union[str, Callable[[SupportedDataType], torch.Tensor]]) -> Callable[[SupportedDataType], torch.Tensor]:
+    def to_callable(tensor_extractor: str | Callable[[SupportedDataType], torch.Tensor]) -> Callable[[SupportedDataType], torch.Tensor] | None:
         """Ensures the input `tensor_extractor` to be a callable.
 
         For example:
@@ -55,7 +56,7 @@ class TensorExtractorResolver:
         return TensorExtractorResolver._resolve(tensor_extractor).value
 
     @staticmethod
-    def to_string(tensor_extractor: Union[None, str, Callable[[SupportedDataType], torch.Tensor]]) -> Optional[str]:
+    def to_string(tensor_extractor: str | Callable[[SupportedDataType], torch.Tensor] | None) -> str | None:
         """Ensures the input `tensor_extractor` to be a string.
 
         For example:
@@ -74,7 +75,7 @@ class TensorExtractorResolver:
         return TensorExtractorResolver._resolve(tensor_extractor).name
 
     @staticmethod
-    def _resolve(tensor_extractor: Union[None, str, Callable[[torch.Tensor], torch.Tensor]]) -> CachableParam:
+    def _resolve(tensor_extractor: str | Callable[[SupportedDataType], torch.Tensor] | None) -> CachableParam:
         """Translate the input `tensor_extractor` into both:
             - value: Callable that extract a specific tensor (e.g. Image(s) or Label(s)) form a dataset output, which will be used in the code.
             - name:  String representing this function, to support loading/saving this function into cache.
@@ -94,23 +95,24 @@ class TensorExtractorResolver:
         if tensor_extractor is None:
             return CachableParam(value=None, name=None)
 
-        elif isinstance(tensor_extractor, str):
+        if isinstance(tensor_extractor, str):
             if tensor_extractor.startswith(NON_CACHABLE_PREFIX):
                 # The value corresponds to the cache of a custom function. THis means that the function was cached by user in previous run,
                 # but he did not provide a function for this run.
                 # Since we cannot build back the original function, we raise an informative exception.
                 raise CacheLoadingError(key="tensor_extractor", value=tensor_extractor)
+
             return CachableParam(value=NestedDataLookup(tensor_extractor), name=tensor_extractor)
 
-        elif isinstance(tensor_extractor, Callable):
+        if isinstance(tensor_extractor, Callable):
             return CachableParam(value=tensor_extractor, name=f"{NON_CACHABLE_PREFIX} - {tensor_extractor}")
-        else:
-            raise TypeError(f"Extractor type `{type(tensor_extractor)}` not supported!")
+
+        raise TypeError(f"Extractor type `{type(tensor_extractor)}` not supported!")
 
 
 class XYXYConverterResolver:
     @staticmethod
-    def to_callable(xyxy_converter: Union[str, Callable[[torch.Tensor], torch.Tensor]]) -> Callable[[torch.Tensor], torch.Tensor]:
+    def to_callable(xyxy_converter: str | Callable[[torch.Tensor], torch.Tensor]) -> Callable[[torch.Tensor], torch.Tensor] | None:
         """Ensures the input `xyxy_converter` to be a callable.
 
         For example:
@@ -126,7 +128,7 @@ class XYXYConverterResolver:
         return XYXYConverterResolver._resolve(xyxy_converter).value
 
     @staticmethod
-    def to_string(xyxy_converter: Union[None, str, Callable[[torch.Tensor], torch.Tensor]]) -> Optional[str]:
+    def to_string(xyxy_converter: str | Callable[[torch.Tensor], torch.Tensor] | None) -> str | None:
         """Ensures the input `xyxy_converter` to be a string.
 
         For example:
@@ -139,13 +141,15 @@ class XYXYConverterResolver:
             >> XYXYConverterResolver.to_string(custom_xywh2xyxy)
             # [Non-cachable] - <function custom_xywh2xyxy at 0x102ca5820>
 
-        :param xyxy_converter: Either None, a string representation (e.g. `xywh`) or a custom callable (e.g. custom_xywh2xyxy or lambda bbox: ...)
+        :param xyxy_converter: Either None, a string representation (e.g. `xywh`) or a custom callable
+            (e.g. custom_xywh2xyxy or lambda bbox: ...)
+
         :return: String representing this function, to support loading/saving this function into cache.
         """
         return XYXYConverterResolver._resolve(xyxy_converter).name
 
     @staticmethod
-    def _resolve(xyxy_converter: Union[None, str, Callable[[torch.Tensor], torch.Tensor]]) -> CachableParam:
+    def _resolve(xyxy_converter: str | Callable[[torch.Tensor], torch.Tensor] | None) -> CachableParam:
         """Translate the input `xyxy_converter` into both:
             - value: Callable that converts bboxes into xyxy, which will be used in the code.
             - name:  String representing this function, to support loading/saving this function into cache.
@@ -157,13 +161,15 @@ class XYXYConverterResolver:
             >> XYXYConverterResolver.resolve(custom_xywh2xyxy)
             # CachableParam(value=custom_xywh2xyxy, name="[Non-cachable] - <function custom_xywh2xyxy at 0x102ca5820>")
 
-        :param xyxy_converter: Either None, a string representation (e.g. `xywh`) or a custom callable (e.g. custom_xywh2xyxy or lambda bbox: ...)
+        :param xyxy_converter: Either None, a string representation (e.g. `xywh`) or a custom callable
+            (e.g. custom_xywh2xyxy or lambda bbox: ...)
+
         :return: Dataclass including both the value (used in the code) and the name (used in the cache) of this function.
         """
         if xyxy_converter is None:
             return CachableParam(value=None, name=None)
 
-        elif isinstance(xyxy_converter, str):
+        if isinstance(xyxy_converter, str):
             if xyxy_converter.startswith(NON_CACHABLE_PREFIX):
                 # The value corresponds to the cache of a custom function. THis means that the function was cached by user in previous run,
                 # but he did not provide a function for this run.
@@ -171,7 +177,13 @@ class XYXYConverterResolver:
                 raise CacheLoadingError(key="xyxy_converter", value=xyxy_converter)
             return CachableParam(XYXYConverter(xyxy_converter), xyxy_converter)
 
-        elif isinstance(xyxy_converter, Callable):
+        if isinstance(xyxy_converter, Callable):
             return CachableParam(value=xyxy_converter, name=f"{NON_CACHABLE_PREFIX} - {xyxy_converter}")
-        else:
-            raise TypeError(f"`xyxy_converter` type `{type(xyxy_converter)}` not supported!")
+
+        raise TypeError(f"`xyxy_converter` type `{type(xyxy_converter)}` not supported!")
+        ##
+
+
+##
+
+##

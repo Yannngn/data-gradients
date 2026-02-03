@@ -18,7 +18,7 @@ class TestAssets(unittest.TestCase):
         image = np.random.random((300, 300, 600))
 
         resized_in_chunks = resize_in_chunks(img=image, size=(100, 100), interpolation=cv2.INTER_LINEAR)
-        with self.assertRaises(Exception):
+        with self.assertRaises(cv2.error):
             _ = cv2.resize(src=image, dsize=(100, 100), interpolation=cv2.INTER_LINEAR)
 
         self.assertEqual(tuple(resized_in_chunks.shape), (100, 100, 600))

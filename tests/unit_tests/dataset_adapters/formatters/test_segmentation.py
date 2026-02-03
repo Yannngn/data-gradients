@@ -4,15 +4,17 @@ import torch
 
 from data_gradients.dataset_adapters.config.data_config import SegmentationDataConfig
 from data_gradients.dataset_adapters.formatters.segmentation import SegmentationBatchFormatter
+from data_gradients.dataset_adapters.formatters.utils import FloatImageFormat
 from data_gradients.utils.data_classes.image_channels import ImageChannels
 
 
 class TestSegmentationBatchFormatter(unittest.TestCase):
     def setUp(self):
         self.data_config = SegmentationDataConfig(
-            class_names=["background", "class1", "class2", "class3"],
+            class_names={0: "background", 1: "class1", 2: "class2", 3: "class3"},
             class_names_to_use=["class1", "class2", "class3"],
             image_channels=ImageChannels.from_str("RGB"),
+            image_format=FloatImageFormat(),
         )
         self.formatter = SegmentationBatchFormatter(data_config=self.data_config, threshold_value=0.5)
 
@@ -20,6 +22,7 @@ class TestSegmentationBatchFormatter(unittest.TestCase):
         images = torch.rand(8, 3, 64, 64)  # Batch of images
         labels = torch.randint(0, 4, (8, 64, 64))  # Corresponding labels
         out_images, out_labels = self.formatter.format(images, labels)
+        out_images = torch.stack([img.as_torch() for img in out_images])
         self.assertEqual(out_images.shape, (8, 3, 64, 64))
         self.assertEqual(out_labels.shape, (8, 64, 64))
 
@@ -27,6 +30,7 @@ class TestSegmentationBatchFormatter(unittest.TestCase):
         images = torch.rand(3, 64, 64)
         labels = torch.randint(0, 4, (64, 64))
         out_images, out_labels = self.formatter.format(images, labels)
+        out_images = torch.stack([img.as_torch() for img in out_images])
         self.assertEqual(out_images.shape, (1, 3, 64, 64))
         self.assertEqual(out_labels.shape, (1, 64, 64))
 
@@ -34,6 +38,7 @@ class TestSegmentationBatchFormatter(unittest.TestCase):
         images = torch.rand(8, 64, 64, 3)
         labels = torch.randint(0, 4, (8, 64, 64))
         out_images, _ = self.formatter.format(images, labels)
+        out_images = torch.stack([img.as_torch() for img in out_images])
         self.assertEqual(out_images.shape, (8, 3, 64, 64))
 
     def test_label_formats(self):
@@ -57,7 +62,7 @@ class TestSegmentationBatchFormatter(unittest.TestCase):
 
     def test_threshold_values(self):
         data_config = SegmentationDataConfig(
-            class_names=["class1"],
+            class_names={1: "class1"},
             image_channels=ImageChannels.from_str("RGB"),
         )
         formatter = SegmentationBatchFormatter(data_config=data_config, threshold_value=0.05)
@@ -75,6 +80,7 @@ class TestSegmentationBatchFormatter(unittest.TestCase):
         images = torch.rand(8, 3, 64, 64) * 2 - 1  # [-1, 1] range
         labels = torch.randint(0, 4, (8, 64, 64))
         out_images, _ = self.formatter.format(images, labels)
+        out_images = torch.stack([img.as_torch() for img in out_images])
         self.assertTrue(torch.all(out_images >= 0) and torch.all(out_images <= 255))
 
     def test_label_conversion(self):
@@ -85,5 +91,9 @@ class TestSegmentationBatchFormatter(unittest.TestCase):
         self.assertTrue(torch.all(out_labels == 2))
 
 
+if __name__ == "__main__":
+    unittest.main()
+if __name__ == "__main__":
+    unittest.main()
 if __name__ == "__main__":
     unittest.main()

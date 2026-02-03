@@ -1,10 +1,11 @@
-import abc
 import logging
-import os
 import traceback
 from collections.abc import Iterable, Sized
+from contextlib import suppress
 from logging import getLogger
+from pathlib import Path
 
+from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 from data_gradients.dataset_adapters.config.typing_utils import SupportedDataType
@@ -22,7 +23,7 @@ logging.basicConfig(level=logging.INFO)
 logger = getLogger(__name__)
 
 
-class AnalysisManagerAbstract(abc.ABC):
+class AnalysisManagerAbstract:
     """
     Main dataset analyzer manager abstract class.
     """
@@ -67,16 +68,18 @@ class AnalysisManagerAbstract(abc.ABC):
         # FEATURES
         self.grouped_feature_extractors = grouped_feature_extractors
         self._remove_plots_after_report = remove_plots_after_report
-        for _, grouped_feature_list in self.grouped_feature_extractors.items():
+
+        for grouped_feature_list in self.grouped_feature_extractors.values():
             for feature_extractor in grouped_feature_list:
                 feature_extractor.setup_data_sources(train_data, val_data)
+
         self._train_iters_done = 0
         self._val_iters_done = 0
         self._train_batch_size = None
         self._val_batch_size = None
         self._stopped_early = None
 
-    def execute(self):
+    def execute(self) -> None:
         """
         Execute method take batch from train & val data iterables, submit a thread to it and runs the extractors.
         Method finish it work after both train & val iterables are exhausted.
@@ -110,42 +113,41 @@ class AnalysisManagerAbstract(abc.ABC):
 
         with tqdm(total=self.n_batches, desc="Analyzing... ") as datasets_tqdm:
             i = 0
+            train_sample = None
+            val_sample = None
+
             while True:
                 try:
-                    train_sample = None
-                    train_sample = next(train_samples_iterator)
+                    with suppress(StopIteration):
+                        train_sample = next(train_samples_iterator)
 
-                    if train_sample is not None:
-                        for feature_extractors in self.grouped_feature_extractors.values():
-                            for feature_extractor in feature_extractors:
-                                feature_extractor.update(train_sample)
-                        self._train_iters_done += 1
+                        if train_sample is not None:
+                            for feature_extractors in self.grouped_feature_extractors.values():
+                                for feature_extractor in feature_extractors:
+                                    feature_extractor.update(train_sample)
+                            self._train_iters_done += 1
 
-                    if self._train_batch_size is None:
-                        self._train_batch_size = self._train_iters_done
+                        if self._train_batch_size is None:
+                            self._train_batch_size = self._train_iters_done
 
-                except StopIteration:
-                    train_sample = None
                 except NonFiniteValuesError as e:
                     logger.error(f"Train sample {self._train_iters_done} contains non-finite values: {e}")
                     non_finite_train_samples += 1
                     non_finite_train_samples_example = str(e)
 
                 try:
-                    val_sample = None
-                    val_sample = next(val_samples_iterator)
+                    with suppress(StopIteration):
+                        val_sample = next(val_samples_iterator)
 
-                    if val_sample is not None:
-                        for feature_extractors in self.grouped_feature_extractors.values():
-                            for feature_extractor in feature_extractors:
-                                feature_extractor.update(val_sample)
-                        self._val_iters_done += 1
+                        if val_sample is not None:
+                            for feature_extractors in self.grouped_feature_extractors.values():
+                                for feature_extractor in feature_extractors:
+                                    feature_extractor.update(val_sample)
+                            self._val_iters_done += 1
 
-                    if self._val_batch_size is None:
-                        self._val_batch_size = self._val_iters_done
+                        if self._val_batch_size is None:
+                            self._val_batch_size = self._val_iters_done
 
-                except StopIteration:
-                    val_sample = None
                 except NonFiniteValuesError as e:
                     logger.error(f"Val sample {self._val_iters_done} contains non-finite values: {e}")
                     non_finite_val_samples += 1
@@ -176,14 +178,13 @@ class AnalysisManagerAbstract(abc.ABC):
 
             message += "This most likely indicate you have a bug in your dataset class / annotation files."
 
-            self.summary_writer.add_error("Non-finite values", message)
+            self.summary_writer.add_error("Non-finite values", [message])
 
-    def post_process(self, interrupted=False):
+    def post_process(self, interrupted: bool = False) -> None:
         """
         Post process method runs on all feature extractors, concurrently on valid and train extractors, send each
         of them a matplotlib ax(es) and gets in return the ax filled with the feature extractor information.
         Then, it logs the information through the logging.
-        :return:
         """
         images_created = []
 
@@ -191,7 +192,13 @@ class AnalysisManagerAbstract(abc.ABC):
         if self.summary_writer._errors:
             errors_section = Section("Errors")
             for error in self.summary_writer._errors:
-                errors_section.add_feature(FeatureSummary(name=error["title"], description=error["error"], image_path=None))
+                errors_section.add_feature(
+                    FeatureSummary(
+                        name=error["title"],
+                        description=error["error"],
+                        image_path=None,
+                    ),
+                )
             summary.add_section(errors_section)
 
         for section_name, feature_extractors in tqdm(self.grouped_feature_extractors.items(), desc="Summarizing... "):
@@ -200,9 +207,10 @@ class AnalysisManagerAbstract(abc.ABC):
                 feature_name = feature_extractor.__class__.__name__
                 try:
                     feature = feature_extractor.aggregate()
-                    f = self.renderer.render(feature.data, feature.plot_options)
+                    f = self.renderer.render(feature.data, feature.plot_options)  # type: ignore
                     feature_json = feature.json
                     feature_error = ""
+
                 except Exception as e:
                     feature, f = None, None
                     error_description = traceback.format_exception(type(e), e, e.__traceback__)
@@ -213,13 +221,12 @@ class AnalysisManagerAbstract(abc.ABC):
                     self.summary_writer.add_error(title=feature_name, error=error_description)
                     logger.error(f"Feature extractor {feature_extractor} error: {error_description}")
 
+                image_path = None
                 if f is not None:
                     image_name = feature_extractor.__class__.__name__ + ".png"
-                    image_path = os.path.join(self.summary_writer.archive_dir, image_name)
-                    f.savefig(image_path, dpi=200)
+                    image_path = Path(self.summary_writer.archive_dir) / image_name
+                    f.savefig(str(image_path), dpi=200)
                     images_created.append(image_path)
-                else:
-                    image_path = None
 
                 self.summary_writer.add_feature_stats(title=feature_name, stats=feature_json)
 
@@ -228,9 +235,9 @@ class AnalysisManagerAbstract(abc.ABC):
                 elif isinstance(feature_extractor, SummaryStats) and (interrupted or (self.batches_early_stop and self._stopped_early)):
                     warning = self._create_samples_iterated_warning()
                 else:
-                    warning = feature.warning
+                    warning = feature.warning if feature else None
 
-                if not feature_error:
+                if not feature_error and feature is not None:
                     section.add_feature(
                         FeatureSummary(
                             name=feature.title,
@@ -240,6 +247,7 @@ class AnalysisManagerAbstract(abc.ABC):
                             notice=feature.notice,
                         )
                     )
+
             summary.add_section(section)
 
         print("Dataset successfully analyzed!")
@@ -251,9 +259,10 @@ class AnalysisManagerAbstract(abc.ABC):
         # Cleanup of generated images
         if self._remove_plots_after_report:
             for image_created in images_created:
-                os.remove(image_created)
+                Path(image_created).unlink()
+            plt.close("all")
 
-    def run(self):
+    def run(self) -> None:
         """
         Run method activating build, execute, post process and close the manager.
         """
@@ -273,7 +282,7 @@ class AnalysisManagerAbstract(abc.ABC):
 
         self.print_summary()
 
-    def print_summary(self):
+    def print_summary(self) -> None:
         print()
         print(f"{'=' * 100}")
         print("Your dataset evaluation has been completed!")
@@ -286,15 +295,15 @@ class AnalysisManagerAbstract(abc.ABC):
         print("Report Location:")
         print("    - Temporary Folder (will be overwritten next run):")
         print(f"        └─ {self.summary_writer.log_dir}")
-        print(f"                ├─ {os.path.basename(self.summary_writer.report_archive_path)}")
-        print(f"                └─ {os.path.basename(self.summary_writer.summary_archive_path)}")
+        print(f"                ├─ {Path(self.summary_writer.report_archive_path).name}")
+        print(f"                └─ {Path(self.summary_writer.summary_archive_path).name}")
         print("    - Archive Folder:")
         print(f"        └─ {self.summary_writer.archive_dir}")
-        print(f"                ├─ {os.path.basename(self.summary_writer.report_archive_path)}")
-        print(f"                └─ {os.path.basename(self.summary_writer.summary_archive_path)}")
+        print(f"                ├─ {Path(self.summary_writer.report_archive_path).name}")
+        print(f"                └─ {Path(self.summary_writer.summary_archive_path).name}")
         print("")
         print(f"{'=' * 100}")
-        print("Seen a glitch? Have a suggestion? Visit https://github.com/Deci-AI/data-gradients !")
+        print("Seen a glitch? Have a suggestion? Visit  https://github.com/Yannngn/data-gradients !")
 
     @property
     def n_batches(self):
@@ -305,16 +314,17 @@ class AnalysisManagerAbstract(abc.ABC):
             return self.batches_early_stop if self.batches_early_stop is not None else float("inf")
 
         if self.train_size is None:
-            max_size = self.val_size
+            max_size: int = self.val_size  # type: ignore[assignment] # val_size is not None here
         elif self.val_size is None:
-            max_size = self.train_size
+            max_size: int = self.train_size
         else:
-            max_size = max(self.train_size, self.val_size)
+            max_size: int = max(self.train_size, self.val_size)
 
         # If batches_early_stop is set, take the minimum of batches_early_stop and the max_size
         # Otherwise, return max_size
         if self.batches_early_stop is not None:
             return min(max_size, self.batches_early_stop)
+
         return max_size
 
     def _create_samples_iterated_warning(self) -> str:
@@ -351,3 +361,10 @@ class AnalysisManagerAbstract(abc.ABC):
     @staticmethod
     def _is_html(description: str) -> bool:
         return description.startswith("<") and description.endswith(">")
+
+    ##
+
+    ##
+    ##
+
+    ##

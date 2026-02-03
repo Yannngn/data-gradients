@@ -1,17 +1,17 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from typing import Any
 
 import numpy as np
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
-from data_gradients.utils.data_classes.data_samples import ImageSample
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.visualize.images import combine_images, stack_split_images_to_fig
 from data_gradients.visualize.plot_options import FigureRenderer
 
 
 @register_feature_extractor()
-class AbstractSampleVisualization(AbstractFeatureExtractor, ABC):
+class AbstractSampleVisualization(NoSourceFeatureExtractor, ABC):
     """
     Constructs a visual grid of image samples from different dataset splits.
 
@@ -32,7 +32,7 @@ class AbstractSampleVisualization(AbstractFeatureExtractor, ABC):
         self.stack_splits_vertically = stack_splits_vertically
         self.images_per_split: dict[str, list[np.ndarray]] = defaultdict(list)
 
-    def update(self, sample: ImageSample):
+    def update(self, sample: Any):  # ImageSample
         split_images = self.images_per_split[sample.split]
 
         if len(split_images) < self.n_rows * self.n_cols:
@@ -40,7 +40,7 @@ class AbstractSampleVisualization(AbstractFeatureExtractor, ABC):
             split_images.append(image)
 
     @abstractmethod
-    def _prepare_sample_visualization(self, sample: ImageSample) -> np.ndarray:
+    def _prepare_sample_visualization(self, sample: Any) -> np.ndarray:  # ImageSample
         """Combine image and label to a single image.
 
         :param sample: Input image sample
@@ -80,3 +80,8 @@ class AbstractSampleVisualization(AbstractFeatureExtractor, ABC):
             ),
         )
         return feature
+
+
+#
+
+#

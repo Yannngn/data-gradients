@@ -1,18 +1,19 @@
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.feature_extractors.utils import MostImportantValuesSelector
 from data_gradients.utils.data_classes import DetectionSample
 from data_gradients.visualize.plot_options import ViolinPlotOptions
 
 
 @register_feature_extractor()
-class DetectionClassesPerImageCount(AbstractFeatureExtractor):
+class DetectionClassesPerImageCount(NoSourceFeatureExtractor):
     """
     Evaluates and illustrates the frequency of class instances within individual images.
 
-    By showing the number of times classes are seen in each image, this feature helps identify which classes are common or rare in a typical image.
+    By showing the number of times classes are seen in each image, this feature helps identify which classes are common or rare in
+    a typical image.
 
     This provides information such as "The class 'Human' usually appears 2 to 20 times per image".
     """
@@ -25,13 +26,14 @@ class DetectionClassesPerImageCount(AbstractFeatureExtractor):
                 - 'outliers':       Returns the top k rows with the most extreme average values.
                 - 'max':            Returns the top k rows with the highest average values.
                 - 'min':            Returns the top k rows with the lowest average values.
-                - 'min_max':        Returns the (top k)/2 rows with the biggest average values, and the (top k)/2 with the smallest average values.
+                - 'min_max':        Returns the (top k)/2 rows with the biggest average values, and
+                                    the (top k)/2 with the smallest average values.
         """
         self.value_extractor = MostImportantValuesSelector(topk=topk, prioritization_mode=prioritization_mode)
         self.data = []
 
     def update(self, sample: DetectionSample):
-        for class_id, bbox_xyxy in zip(sample.class_ids, sample.bboxes_xyxy, strict=False):
+        for class_id, _bbox_xyxy in zip(sample.class_ids, sample.bboxes_xyxy, strict=False):
             class_name = sample.class_names[class_id]
             self.data.append(
                 {

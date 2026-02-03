@@ -1,18 +1,17 @@
-import dataclasses
-from typing import List, Dict, Union
+from dataclasses import dataclass
 
 import numpy as np
 import torch
 
+from data_gradients.dataset_adapters.config.typing_utils import ClassNamesType
+from data_gradients.dataset_adapters.formatters.utils import FloatImageFormat, ImageFormat, ScaledFloatImageFormat, Uint8ImageFormat
 from data_gradients.utils.data_classes.contour import Contour
 from data_gradients.utils.data_classes.image_channels import ImageChannels
-from data_gradients.dataset_adapters.formatters.utils import ImageFormat, Uint8ImageFormat, FloatImageFormat, ScaledFloatImageFormat
-from dataclasses import dataclass
 
 
 @dataclass
 class Image:
-    data: Union[torch.Tensor, np.ndarray]
+    data: torch.Tensor | np.ndarray
     format: ImageFormat
     channels: ImageChannels
 
@@ -22,7 +21,7 @@ class Image:
     def to_float(self) -> "Image":
         return self._to_format(target_format=FloatImageFormat())
 
-    def to_scaled_float(self, mean: List[float], std: List[float]) -> "Image":
+    def to_scaled_float(self, mean: list[float], std: list[float]) -> "Image":
         return self._to_format(target_format=ScaledFloatImageFormat(mean=mean, std=std))
 
     def _to_format(self, target_format: ImageFormat) -> "Image":
@@ -49,22 +48,25 @@ class Image:
     def as_rgb(self) -> np.ndarray:
         if not isinstance(self.data, np.ndarray):
             raise ValueError(f"`image_as_rgb` is only available for numpy arrays. Got `{type(self.data)}`.")
-        return self.channels.convert_image_to_rgb(image=self.to_uint8().data)
+        nd_image: np.ndarray = np.array(self.to_uint8().data)
+        return self.channels.convert_image_to_rgb(image=nd_image)
 
     @property
     def channels_to_visualize(self) -> np.ndarray:
         if not isinstance(self.data, np.ndarray):
             raise ValueError(f"`channels_to_visualize` is only available for numpy arrays. Got `{type(self.data)}`.")
-        return self.channels.get_channels_to_visualize(image=self.to_uint8().data)
+        nd_image: np.ndarray = np.array(self.to_uint8().data)
+        return self.channels.get_channels_to_visualize(image=nd_image)
 
     @property
     def mean_intensity(self) -> float:
         if not isinstance(self.data, np.ndarray):
             raise ValueError(f"`mean_intensity` is only available for numpy arrays. Got `{type(self.data)}`.")
-        return self.channels.compute_mean_image_intensity(image=self.to_uint8().data)
+        nd_image: np.ndarray = np.array(self.to_uint8().data)
+        return self.channels.compute_mean_image_intensity(image=nd_image)
 
 
-@dataclasses.dataclass
+@dataclass
 class ImageSample:
     """
     This is a dataclass that represents a single sample of the dataset where input to the model is a single image.
@@ -78,11 +80,11 @@ class ImageSample:
     split: str
     image: Image
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"ImageSample(sample_id={self.sample_id}, image={self.image.data.shape}, format={self.image.channels})"
 
 
-@dataclasses.dataclass
+@dataclass
 class SegmentationSample(ImageSample):
     """
     This is a dataclass that represents a single sample of the dataset where input to the model is a single image and
@@ -98,14 +100,14 @@ class SegmentationSample(ImageSample):
 
     mask: np.ndarray
 
-    contours: List[List[Contour]]
-    class_names: Dict[int, str]
+    contours: list[list[Contour]]
+    class_names: dict[int, str]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"SegmentationSample(sample_id={self.sample_id}, image={self.image.shape}, mask={self.mask.shape})"
 
 
-@dataclasses.dataclass
+@dataclass
 class DetectionSample(ImageSample):
     """
     This is a dataclass that represents a single sample of the dataset where input to the model is a single image and
@@ -116,18 +118,21 @@ class DetectionSample(ImageSample):
     :attr image:        np.ndarray of shape [H,W,C] - The image as a numpy array with channels last.
     :attr bboxes_xyxy:  np.ndarray of shape [N, 4] (X, Y, X, Y)
     :attr class_ids:    np.ndarray of shape [N, ]
-    :attr class_names:  List of all class names in the dataset. The index should represent the class_id.
+    :attr class_names:  Dict[int, str] of all class names in the dataset. The key should represent the class_id.
     """
 
     bboxes_xyxy: np.ndarray
     class_ids: np.ndarray
-    class_names: Dict[int, str]
+    class_names: dict[int, str]
 
-    def __repr__(self):
-        return f"DetectionSample(sample_id={self.sample_id}, image={self.image.shape}, bboxes_xyxy={self.bboxes_xyxy.shape}, class_ids={self.class_ids.shape})"
+    def __repr__(self) -> str:
+        return (
+            f"DetectionSample(sample_id={self.sample_id}, image={self.image.shape}, "
+            f"bboxes_xyxy={self.bboxes_xyxy.shape}, class_ids={self.class_ids.shape})"
+        )
 
 
-@dataclasses.dataclass
+@dataclass
 class ClassificationSample(ImageSample):
     """
     This is a dataclass that represents a single classification sample of the dataset where input to the model is
@@ -137,11 +142,48 @@ class ClassificationSample(ImageSample):
     :attr split:        The name of the dataset split. Could be "train", "val", "test", etc.
     :attr image:        np.ndarray of shape [H,W,C] - The image as a numpy array with channels last.
     :attr class_label:  Class label (int)
-    :attr class_names:  List of all class names in the dataset. The index should represent the class_id.
+    :attr class_names:  Dict[int, str] of all class names in the dataset. The key should represent the class_id.
     """
 
     class_id: int
-    class_names: Dict[int, str]
+    class_names: ClassNamesType
 
-    def __repr__(self):
-        return f"DetectionSample(sample_id={self.sample_id}, image={self.image.shape}, label={self.class_id})"
+    def __post_init__(self):
+        if self.class_id not in self.class_names:
+            raise ValueError(f"Class ID {self.class_id} not found in class names dictionary.")
+        # Coerce class_names into dict[int, str]
+        cn = self.class_names
+        if cn is None:
+            self.class_names = {}
+        elif isinstance(cn, dict):
+            coerced: dict[int, str] = {}
+            for k, v in cn.items():
+                try:
+                    ik = int(k)
+                except Exception as e:
+                    raise ValueError(f"class_names dict keys must be ints or int-convertible strings. Got key={k!r}") from e
+                coerced[ik] = str(v)
+            self.class_names = coerced
+        elif isinstance(cn, list | tuple):
+            self.class_names = {int(i): str(name) for i, name in enumerate(cn)}
+        else:
+            raise ValueError(f"Unsupported ClassNamesType: {type(cn)}. Expected dict[int,str] or list[str].")
+
+        if self.class_id not in self.class_names:
+            raise ValueError(f"Class ID {self.class_id} not found in class names dictionary.")
+
+    def __repr__(self) -> str:
+        return (
+            f"ClassificationSample(sample_id={self.sample_id}, image={self.image.shape}, "
+            f"label={self.class_id}, name={self.class_names.get(self.class_id, 'Unknown')})"  # type: ignore
+        )
+
+
+def images_list_to_tensor(images: list[Image]) -> torch.Tensor:
+    """Convert a list of Image dataclasses to a single tensor.
+
+    :param images:  List of Image dataclasses.
+    :return:        Tensor of shape [BS, C, H, W].
+    """
+    image_tensors = [img.as_torch() for img in images]
+    return torch.stack(image_tensors)

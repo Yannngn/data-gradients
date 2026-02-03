@@ -43,8 +43,8 @@ class ClassificationBatchFormatter(BatchFormatter):
             images = images.unsqueeze(0)
             labels = labels.unsqueeze(0)
 
-        images = ensure_channel_first(images, n_image_channels=self.get_n_image_channels(images=images))
-        images = check_images_shape(images, n_image_channels=self.get_n_image_channels(images=images))
+        images = torch.tensor(ensure_channel_first(images, n_image_channels=self.get_n_image_channels(images=images)))
+        images = torch.tensor(check_images_shape(images, n_image_channels=self.get_n_image_channels(images=images)))
 
         labels = self.ensure_labels_shape(images=images, labels=labels)
         image_formatted = self._format_images(images)

@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 
 class AssetNotFoundException(Exception):
@@ -6,8 +6,8 @@ class AssetNotFoundException(Exception):
 
 
 class Asset:
-    def __init__(self, path):
-        self.path = path
+    def __init__(self, path: str | Path):
+        self.path: Path = Path(path)
 
     def read(self):
         with open(self.path) as f:
@@ -15,53 +15,53 @@ class Asset:
 
 
 class TextAssets:
-    def __init__(self, asset_dir):
-        self.asset_dir = os.path.join(asset_dir, "text")
+    def __init__(self, asset_dir: str | Path):
+        self.asset_dir: Path = Path(asset_dir) / "text"
 
     def __getattr__(self, name):
-        asset_path = os.path.join(self.asset_dir, name + ".txt")
+        asset_path = self.asset_dir / (name + ".txt")
 
-        if not os.path.exists(asset_path):
+        if not asset_path.exists():
             raise AssetNotFoundException(f"Asset not found: {name}")
 
         return Asset(asset_path).read()
 
 
 class HTMLAssets:
-    def __init__(self, asset_dir):
-        self.asset_dir = os.path.join(asset_dir, "html")
+    def __init__(self, asset_dir: str | Path):
+        self.asset_dir: Path = Path(asset_dir) / "html"
 
-    def __getattr__(self, name):
-        asset_path = os.path.join(self.asset_dir, name + ".html")
+    def __getattr__(self, name: str):
+        asset_path = self.asset_dir / (name + ".html")
 
-        if not os.path.exists(asset_path):
+        if not asset_path.exists():
             raise AssetNotFoundException(f"Asset not found: {name}")
 
         return Asset(asset_path).read()
 
 
 class CSSAssets:
-    def __init__(self, asset_dir):
-        self.asset_dir = os.path.join(asset_dir, "css")
+    def __init__(self, asset_dir: str | Path):
+        self.asset_dir: Path = Path(asset_dir) / "css"
 
-    def __getattr__(self, name):
-        asset_path = os.path.join(self.asset_dir, name + ".css")
+    def __getattr__(self, name: str):
+        asset_path = self.asset_dir / (name + ".css")
 
-        if not os.path.exists(asset_path):
+        if not asset_path.exists():
             raise AssetNotFoundException(f"Asset not found: {name}")
 
         return asset_path
 
 
 class ImageAssets:
-    def __init__(self, asset_dir):
-        self.asset_dir = os.path.join(asset_dir, "images")
+    def __init__(self, asset_dir: str | Path):
+        self.asset_dir: Path = Path(asset_dir) / "images"
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         for ext in ["jpg", "jpeg", "png", "gif"]:
-            asset_path = os.path.join(self.asset_dir, f"{name}.{ext}")
+            asset_path = self.asset_dir / f"{name}.{ext}"
 
-            if os.path.exists(asset_path):
+            if asset_path.exists():
                 return asset_path
         raise AssetNotFoundException(f"Asset not found: {name}")
 
@@ -76,12 +76,12 @@ class Assets:
        call assets.image.logo to get full path of assets/images/logo.png asset (supported image formats: jpg, jpeg, png, gif)
     """
 
-    def __init__(self, asset_dir):
-        self.asset_dir = asset_dir
-        self._text_assets = TextAssets(asset_dir)
-        self._image_assets = ImageAssets(asset_dir)
-        self._css_assets = CSSAssets(asset_dir)
-        self._html_assets = HTMLAssets(asset_dir)
+    def __init__(self, asset_dir: str | Path):
+        self.asset_dir: Path = Path(asset_dir)
+        self._text_assets = TextAssets(self.asset_dir)
+        self._image_assets = ImageAssets(self.asset_dir)
+        self._css_assets = CSSAssets(self.asset_dir)
+        self._html_assets = HTMLAssets(self.asset_dir)
 
     @property
     def text(self):

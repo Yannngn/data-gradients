@@ -1,7 +1,8 @@
-from typing import Iterable, List, Sequence, Tuple
+from collections.abc import Sequence
+from dataclasses import dataclass
+
 import cv2
 import numpy as np
-from dataclasses import dataclass
 
 from data_gradients.visualize.detection.utils import best_text_color
 
@@ -21,28 +22,28 @@ class LabelInfo:
     """
 
     name: str
-    color: Tuple[int, int, int]
-    text_size: Tuple[int, int]
+    color: tuple[int, int, int]
+    text_size: tuple[int, int]
 
 
 @dataclass
 class Row:
     """Represent a row of labels."""
 
-    labels: List[LabelInfo]
+    labels: list[LabelInfo]
     total_width: int
 
 
-def get_text_size(text: str) -> Tuple[int, int]:
+def get_text_size(text: str) -> tuple[int, int]:
     """Calculate the size of a given text using the CV2 getTextSize function.
 
     :param text: Input text.
     :return: A tuple of width and height of the text box.
     """
-    return cv2.getTextSize(text, FONT, INITIAL_FONT_SIZE, LINE_TYPE)[0]
+    return cv2.getTextSize(text, FONT, INITIAL_FONT_SIZE, LINE_TYPE)[0]  # type: ignore[returnType] # tuple[Size, int]
 
 
-def get_label_info(name: str, color: Tuple[int, int, int]) -> LabelInfo:
+def get_label_info(name: str, color: tuple[int, int, int]) -> LabelInfo:
     """Creates a LabelInfo object for a given name and color.
 
     :param name: Label name.
@@ -52,7 +53,7 @@ def get_label_info(name: str, color: Tuple[int, int, int]) -> LabelInfo:
     return LabelInfo(name, color, get_text_size(name))
 
 
-def add_to_row_or_create_new(rows: List[Row], label: LabelInfo, image_width: int) -> List[Row]:
+def add_to_row_or_create_new(rows: list[Row], label: LabelInfo, image_width: int) -> list[Row]:
     """Adds a label to a row or creates a new row if the current one is full.
 
     :param rows: Existing rows of labels.
@@ -70,7 +71,7 @@ def add_to_row_or_create_new(rows: List[Row], label: LabelInfo, image_width: int
     return rows
 
 
-def get_sorted_labels(class_color_tuples: Sequence[Tuple[str, Tuple[int, int, int]]]) -> List[LabelInfo]:
+def get_sorted_labels(class_color_tuples: Sequence[tuple[str, tuple[int, int, int]]]) -> list[LabelInfo]:
     """Sorts and creates LabelInfo for class-color tuples.
 
     :param class_color_tuples: Tuples of class names and associated colors.
@@ -80,7 +81,7 @@ def get_sorted_labels(class_color_tuples: Sequence[Tuple[str, Tuple[int, int, in
     return [get_label_info(name, color) for name, color in sorted_classes]
 
 
-def get_label_rows(labels: List[LabelInfo], image_width: int) -> List[Row]:
+def get_label_rows(labels: list[LabelInfo], image_width: int) -> list[Row]:
     """Arranges labels in rows to fit into the image.
 
     :param labels: List of labels.
@@ -93,7 +94,7 @@ def get_label_rows(labels: List[LabelInfo], image_width: int) -> List[Row]:
     return rows
 
 
-def draw_label_on_canvas(canvas: np.ndarray, label: LabelInfo, position: Tuple[int, int], font_size: int) -> Tuple[np.ndarray, int]:
+def draw_label_on_canvas(canvas: np.ndarray, label: LabelInfo, position: tuple[int, int], font_size: int) -> tuple[np.ndarray, int]:
     """Draws a label on the canvas.
 
     :param canvas: The canvas to draw on.
@@ -109,11 +110,11 @@ def draw_label_on_canvas(canvas: np.ndarray, label: LabelInfo, position: Tuple[i
     return canvas, position[0] + label.text_size[0] + MARGIN_SPACE
 
 
-def draw_legend_on_canvas(image: np.ndarray, class_color_tuples: Iterable[Tuple[str, Tuple[int, int, int]]]) -> np.ndarray:
+def draw_legend_on_canvas(image: np.ndarray, class_color_tuples: Sequence[tuple[str, tuple[int, int, int]]]) -> np.ndarray:
     """Draws a legend on the canvas.
 
     :param image: The image to draw the legend on.
-    :param class_color_tuples: Iterable of tuples containing class name and its color.
+    :param class_color_tuples: Sequence of tuples containing class name and its color.
     :return: The canvas with the legend drawnOops, it seems like the response got cut off.
     """
     sorted_labels = get_sorted_labels(class_color_tuples)

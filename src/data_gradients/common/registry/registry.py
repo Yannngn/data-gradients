@@ -1,8 +1,8 @@
 import inspect
-from typing import Callable, Dict, Optional
+from collections.abc import Callable
 
 
-def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
+def create_register_decorator(registry: dict[str, Callable]) -> Callable:
     """
     Create a decorator that registers object of specified type (model, metric, ...)
 
@@ -10,7 +10,7 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
     :return:            Register function
     """
 
-    def register(name: Optional[str] = None) -> Callable:
+    def register(name: str | None = None) -> Callable:
         """
         Set up a register decorator.
 
@@ -24,7 +24,9 @@ def create_register_decorator(registry: Dict[str, Callable]) -> Callable:
 
             if cls_name in registry:
                 ref = registry[cls_name]
-                raise Exception(f"`{cls_name}` is already registered and points to `{inspect.getmodule(ref).__name__}.{ref.__name__}")
+                the_module = inspect.getmodule(ref)
+                module_name = the_module.__name__ if the_module is not None else "unknown module"
+                raise Exception(f"`{cls_name}` is already registered and points to `{module_name}.{ref.__name__}")
 
             registry[cls_name] = cls
             return cls

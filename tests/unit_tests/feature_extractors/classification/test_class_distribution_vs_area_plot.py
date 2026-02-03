@@ -4,11 +4,11 @@ import uuid
 
 import numpy as np
 
+from data_gradients.dataset_adapters.formatters.utils import Uint8ImageFormat
 from data_gradients.feature_extractors.classification.class_distribution_vs_area_scatter import ClassificationClassDistributionVsAreaPlot
 from data_gradients.utils.data_classes.data_samples import ClassificationSample, Image
-from data_gradients.visualize.seaborn_renderer import SeabornRenderer
 from data_gradients.utils.data_classes.image_channels import ImageChannels
-from data_gradients.dataset_adapters.formatters.utils import Uint8ImageFormat
+from data_gradients.visualize.seaborn_renderer import SeabornRenderer
 
 
 class ClassificationClassDistributionVsAreaPlotTest(unittest.TestCase):
@@ -16,7 +16,7 @@ class ClassificationClassDistributionVsAreaPlotTest(unittest.TestCase):
         self.class_distribution = ClassificationClassDistributionVsAreaPlot()
         class_names = {0: "class_1", 1: "class_2", 2: "class_3", 3: "class_4"}
 
-        for i in range(100):
+        for _i in range(100):
             dummy_image = np.zeros((random.randint(100, 500), random.randint(100, 500), 3), dtype=np.uint8)
             self.class_distribution.update(
                 ClassificationSample(
@@ -28,7 +28,7 @@ class ClassificationClassDistributionVsAreaPlotTest(unittest.TestCase):
                 )
             )
 
-        for i in range(100):
+        for _i in range(100):
             dummy_image = np.zeros((random.randint(300, 600), random.randint(200, 300), 3), dtype=np.uint8)
             self.class_distribution.update(
                 ClassificationSample(
@@ -40,7 +40,7 @@ class ClassificationClassDistributionVsAreaPlotTest(unittest.TestCase):
                 )
             )
 
-        for i in range(100):
+        for _i in range(100):
             dummy_image = np.zeros((random.randint(100, 200), random.randint(700, 800), 3), dtype=np.uint8)
             self.class_distribution.update(
                 ClassificationSample(
@@ -52,7 +52,7 @@ class ClassificationClassDistributionVsAreaPlotTest(unittest.TestCase):
                 )
             )
 
-        for i in range(100):
+        for _i in range(100):
             dummy_image = np.zeros((random.randint(200, 250), random.randint(200, 250), 3), dtype=np.uint8)
             self.class_distribution.update(
                 ClassificationSample(
@@ -64,7 +64,7 @@ class ClassificationClassDistributionVsAreaPlotTest(unittest.TestCase):
                 )
             )
 
-        for i in range(100):
+        for _i in range(100):
             dummy_image = np.zeros((220, 230, 3), dtype=np.uint8)
             self.class_distribution.update(
                 ClassificationSample(
@@ -78,8 +78,13 @@ class ClassificationClassDistributionVsAreaPlotTest(unittest.TestCase):
 
     def test_plot(self):
         feature = self.class_distribution.aggregate()
+
         sns = SeabornRenderer()
-        f = sns.render(feature.data, feature.plot_options)
+
+        f = sns.render(feature.data, feature.plot_options)  # type: ignore
+        if f is None:
+            raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
+
         f.savefig(fname=self.class_distribution.__class__.__name__ + ".png")
         f.show()
 

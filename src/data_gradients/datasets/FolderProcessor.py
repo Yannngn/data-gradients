@@ -1,6 +1,8 @@
 import logging
-import os
-from collections.abc import Sequence
+from collections.abc import Iterable, Iterator
+from pathlib import Path
+
+from data_gradients.datasets.utils import PathLike
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +36,11 @@ class ImageLabelFilesIterator:
 
     def __init__(
         self,
-        images_dir: str,
-        labels_dir: str,
-        label_extensions: Sequence[str],
-        image_extensions: Sequence[str] = DEFAULT_IMG_EXTENSIONS,
-        config_path: str | None = None,
+        images_dir: PathLike,
+        labels_dir: PathLike,
+        label_extensions: Iterable[str],
+        image_extensions: Iterable[str] = DEFAULT_IMG_EXTENSIONS,
+        config_path: PathLike | None = None,
         verbose: bool = True,
     ):
         """
@@ -47,7 +49,8 @@ class ImageLabelFilesIterator:
         :param label_extensions:    The extensions of the labels. Only the labels with these extensions will be considered.
         :param image_extensions:    The extensions of the images. Only the images with these extensions will be considered.
         :param config_path:         Path to the config file. This config file should contain the list of file ids to include.
-                                        E.g. ['235', '532', ...], refering to ('235.jpg', '532.jpg') and ('235.txt', '532.txt') in their respective folders.
+                                        E.g. ['235', '532', ...], refering to ('235.jpg', '532.jpg') and ('235.txt', '532.txt')
+                                        in their respective folders.
                                         If None, all the relevant files listed in images_dir/labels_dir will be used.
         :param verbose:             Whether to print extra messages.
         """
@@ -62,11 +65,11 @@ class ImageLabelFilesIterator:
             images_dir=images_dir, labels_dir=labels_dir, config_path=config_path
         )
 
-    def _normalize_extension(self, extensions: list[str]) -> list[str]:
+    def _normalize_extension(self, extensions: Iterable[str]) -> list[str]:
         """Ensure that all extensions are lower case and don't include the '.'"""
         return [ext.replace(".", "").lower() for ext in extensions]
 
-    def get_image_and_label_file_names(self, images_dir: str, labels_dir: str, config_path: str | None) -> list[tuple[str, str]]:
+    def get_image_and_label_file_names(self, images_dir: PathLike, labels_dir: PathLike, config_path: PathLike | None) -> list[tuple[str, str]]:
         """Gather all image and label files that are in the directories.
         :param images_dir:      The directory containing the images.
         :param labels_dir:      The directory containing the labels.
@@ -75,9 +78,10 @@ class ImageLabelFilesIterator:
         :return:                A list of tuple(<path-to-image>, <path-to-label>).
         """
 
-        if not os.path.exists(images_dir):
+        if not Path(images_dir).exists():
             raise FileNotFoundError(f"The image directory `images_dir={images_dir}` does not exist.")
-        if not os.path.exists(labels_dir):
+
+        if not Path(labels_dir).exists():
             raise FileNotFoundError(f"The label directory `labels_dir={labels_dir}` does not exist.")
 
         images_files, labels_files = self._get_file_names_in_folder(images_dir, labels_dir)
@@ -90,10 +94,14 @@ class ImageLabelFilesIterator:
 
         return images_with_labels_files
 
-    def _get_file_names_in_folder(self, images_dir: str, labels_dir: str) -> tuple[list[str], list[str]]:
+    def _get_file_names_in_folder(self, images_dir: PathLike, labels_dir: PathLike) -> tuple[list[str], list[str]]:
         """Extracts the names of all image and label files in the provided folders."""
-        image_files = [os.path.abspath(os.path.join(images_dir, f)) for f in os.listdir(images_dir) if self.is_image(filename=f)]
-        label_files = [os.path.abspath(os.path.join(labels_dir, f)) for f in os.listdir(labels_dir) if self.is_label(filename=f)]
+        images_dir = Path(images_dir)
+        labels_dir = Path(labels_dir)
+
+        image_files = [str(images_dir.resolve() / f) for f in images_dir.glob("*") if self.is_image(filename=f)]
+        label_files = [str(labels_dir.resolve() / f) for f in labels_dir.glob("*") if self.is_label(filename=f)]
+
         return image_files, label_files
 
     def _match_file_names(self, all_images_file_names: list[str], all_labels_file_names: list[str]) -> list[tuple[str, str]]:
@@ -115,7 +123,7 @@ class ImageLabelFilesIterator:
         return [(image_file_base_names[name], label_file_base_names[name]) for name in common_base_names]
 
     def _filter_non_config_files(
-        self, images_with_labels_files: list[tuple[str, str]], images_dir: str, labels_dir: str, config_path: str
+        self, images_with_labels_files: list[tuple[str, str]], images_dir: str | Path, labels_dir: str | Path, config_path: str | Path
     ) -> list[tuple[str, str]]:
         """Filter all the files that are not listed in the `config_path`.
         :param images_with_labels_files:    List of tuple(<path-to-image>, <path-to-label>).
@@ -131,7 +139,9 @@ class ImageLabelFilesIterator:
         for file_id in file_ids:
             if file_id in filename_to_images_with_labels_files:
                 images_with_labels_files.append(filename_to_images_with_labels_files[file_id])
-            elif self.verbose:
+                continue
+
+            if self.verbose:
                 logger.warning(
                     f"No file with `file_id={file_id}` found in `images_dir={images_dir}` and/or `labels_dir={labels_dir}`. "
                     f"Hide this message by setting `verbose=False`."
@@ -145,7 +155,8 @@ class ImageLabelFilesIterator:
             if not self.verbose:
                 error_msg += "\nSet `verbose=True` for more information."
             raise RuntimeError(error_msg)
-        elif len(images_with_labels_files) != len(file_ids):
+
+        if len(images_with_labels_files) != len(file_ids):
             logger.warning(
                 f"Out of {len(file_ids)} file ids found in `config_path={config_path}`, "
                 f"{len(images_with_labels_files)} were found in both `images_dir={images_dir}` and `labels_dir={labels_dir}`. "
@@ -154,15 +165,16 @@ class ImageLabelFilesIterator:
 
         return images_with_labels_files
 
-    def _config_file(self, config_path: str) -> list[str]:
+    def _config_file(self, config_path: str | Path) -> list[str]:
         """Load the config file that includes the list of supported file ids.
         :param config_path: Path to the config file. Should include file extension.
         :return:    List of relevant file ids. (e.g. ['235', '532', ...], refering to '235.jpg', '532.jpg', ...)
         """
-        if not os.path.exists(config_path):
+        config_path = Path(config_path)
+        if not config_path.exists():
             raise FileNotFoundError(f"The config file `{config_path}` does not exist.")
 
-        with open(config_path) as f:
+        with config_path.open("r") as f:
             try:
                 file_ids = f.read().split()
             except Exception as e:
@@ -173,17 +185,17 @@ class ImageLabelFilesIterator:
 
         return file_ids
 
-    def is_image(self, filename: str) -> bool:
+    def is_image(self, filename: str | Path) -> bool:
         """Check if the given file name refers to image."""
-        return filename.split(".")[-1].lower() in self.image_extensions
+        return Path(filename).suffix.replace(".", "").lower() in self.image_extensions
 
-    def is_label(self, filename: str) -> bool:
-        """Check if the given file name refers to image."""
-        return filename.split(".")[-1].lower() in self.label_extensions
+    def is_label(self, filename: str | Path) -> bool:
+        """Check if the given file name refers to label."""
+        return Path(filename).suffix.replace(".", "").lower() in self.label_extensions
 
     @staticmethod
-    def get_filename(file_name: str) -> str:
-        return os.path.splitext(os.path.basename(file_name))[0]
+    def get_filename(filename: str | Path) -> str:
+        return Path(filename).stem
 
     def __len__(self) -> int:
         return len(self.images_with_labels_files)
@@ -191,6 +203,5 @@ class ImageLabelFilesIterator:
     def __getitem__(self, index) -> list[tuple[str, str]]:
         return self.images_with_labels_files[index]
 
-    def __iter__(self) -> list[tuple[str, str]]:
-        for image_label_file in self.images_with_labels_files:
-            yield image_label_file
+    def __iter__(self) -> Iterator[tuple[str, str]]:
+        yield from self.images_with_labels_files

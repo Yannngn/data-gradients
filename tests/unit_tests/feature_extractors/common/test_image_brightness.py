@@ -1,12 +1,13 @@
 import unittest
+
 import numpy as np
 
-from data_gradients.utils.data_classes.data_samples import ImageSample, Image
+from data_gradients.dataset_adapters.formatters.utils import Uint8ImageFormat
 from data_gradients.feature_extractors.common.image_average_brightness import ImagesAverageBrightness
 from data_gradients.feature_extractors.common.image_color_distribution import ImageColorDistribution
-from data_gradients.visualize.seaborn_renderer import SeabornRenderer
+from data_gradients.utils.data_classes.data_samples import Image, ImageSample
 from data_gradients.utils.data_classes.image_channels import ImageChannels
-from data_gradients.dataset_adapters.formatters.utils import Uint8ImageFormat
+from data_gradients.visualize.seaborn_renderer import SeabornRenderer
 
 
 class ImageBrightnessTest(unittest.TestCase):
@@ -114,20 +115,24 @@ class ImageBrightnessTest(unittest.TestCase):
             },
         }
 
-        for split in output_json.keys():
-            for key in output_json[split].keys():
+        for split in output_json:
+            for key in output_json[split]:
                 self.assertEqual(round(output_json[split][key], 4), round(expected_json[split][key], 4))
 
     def test_plot(self):
         feature = self.average_brightness.aggregate()
         sns = SeabornRenderer()
-        f = sns.render(feature.data, feature.plot_options)
+        f = sns.render(feature.data, feature.plot_options)  # type: ignore
+        if f is None:
+            raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
         f.show()
 
     def test_color_distribution_plot(self):
         feature = self.color_distribution.aggregate()
         sns = SeabornRenderer()
-        f = sns.render(feature.data, feature.plot_options)
+        f = sns.render(feature.data, feature.plot_options)  # type: ignore
+        if f is None:
+            raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
         f.show()
 
 

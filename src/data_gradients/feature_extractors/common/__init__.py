@@ -4,7 +4,6 @@ from .image_duplicates import ImageDuplicates
 from .image_resolution import ImagesResolution
 from .summary import SummaryStats
 
-
 __all__ = [
     "ImageDuplicates",
     "ImagesAverageBrightness",

@@ -1,14 +1,17 @@
 import unittest
-import numpy as np
 
-from data_gradients.utils.data_classes.data_samples import SegmentationSample
-from data_gradients.utils.data_classes.contour import Contour
+import numpy as np
+import pandas as pd
+
+from data_gradients.dataset_adapters.formatters.utils import Uint8ImageFormat
 from data_gradients.feature_extractors.segmentation.bounding_boxes_area import SegmentationBoundingBoxArea
 from data_gradients.feature_extractors.segmentation.bounding_boxes_resolution import SegmentationBoundingBoxResolution
-from data_gradients.feature_extractors.segmentation.classes_frequency import SegmentationClassesCount
+from data_gradients.feature_extractors.segmentation.classes_frequency import SegmentationClassFrequency
 from data_gradients.feature_extractors.segmentation.classes_frequency_per_image import SegmentationClassesPerImageCount
-from data_gradients.visualize.seaborn_renderer import SeabornRenderer
+from data_gradients.utils.data_classes.contour import Contour
+from data_gradients.utils.data_classes.data_samples import Image, SegmentationSample
 from data_gradients.utils.data_classes.image_channels import ImageChannels
+from data_gradients.visualize.seaborn_renderer import SeabornRenderer
 
 
 class SegmentationBBoxTest(unittest.TestCase):
@@ -16,13 +19,12 @@ class SegmentationBBoxTest(unittest.TestCase):
         train_sample = SegmentationSample(
             sample_id="sample_1",
             split="train",
-            image=np.zeros((100, 100, 3)),
-            image_channels=ImageChannels.from_str("RGB"),
+            image=Image(data=np.zeros((100, 100, 3)), format=Uint8ImageFormat(), channels=ImageChannels.from_str("RGB")),
             mask=np.zeros((3, 100, 100)),
             contours=[
                 [
                     Contour(
-                        points=[(10, 10), (20, 20), (30, 30)],
+                        points=np.array([(10, 10), (20, 20), (30, 30)]),
                         area=500,
                         w=10,
                         h=10,
@@ -32,7 +34,7 @@ class SegmentationBBoxTest(unittest.TestCase):
                         bbox_area=500,
                     ),
                     Contour(
-                        points=[(20, 20), (30, 30), (40, 40)],
+                        points=np.array([(20, 20), (30, 30), (40, 40)]),
                         area=800,
                         w=20,
                         h=20,
@@ -44,7 +46,7 @@ class SegmentationBBoxTest(unittest.TestCase):
                 ],
                 [
                     Contour(
-                        points=[(50, 50), (60, 60), (70, 70)],
+                        points=np.array([(50, 50), (60, 60), (70, 70)]),
                         area=300,
                         w=10,
                         h=10,
@@ -54,7 +56,7 @@ class SegmentationBBoxTest(unittest.TestCase):
                         bbox_area=300,
                     ),
                     Contour(
-                        points=[(70, 70), (80, 80), (90, 90)],
+                        points=np.array([(70, 70), (80, 80), (90, 90)]),
                         area=600,
                         w=20,
                         h=20,
@@ -64,7 +66,7 @@ class SegmentationBBoxTest(unittest.TestCase):
                         bbox_area=600,
                     ),
                     Contour(
-                        points=[(90, 90), (95, 95), (100, 100)],
+                        points=np.array([(90, 90), (95, 95), (100, 100)]),
                         area=200,
                         w=10,
                         h=10,
@@ -76,7 +78,7 @@ class SegmentationBBoxTest(unittest.TestCase):
                 ],
                 [
                     Contour(
-                        points=[(30, 30), (40, 40), (50, 50)],
+                        points=np.array([(30, 30), (40, 40), (50, 50)]),
                         area=400,
                         w=10,
                         h=10,
@@ -86,7 +88,7 @@ class SegmentationBBoxTest(unittest.TestCase):
                         bbox_area=400,
                     ),
                     Contour(
-                        points=[(60, 60), (70, 70), (80, 80)],
+                        points=np.array([(60, 60), (70, 70), (80, 80)]),
                         area=700,
                         w=20,
                         h=20,
@@ -97,18 +99,18 @@ class SegmentationBBoxTest(unittest.TestCase):
                     ),
                 ],
             ],
+            class_names={0: "class_0", 1: "class_1", 2: "class_2"},
         )
 
         valid_sample = SegmentationSample(
             sample_id="sample_2",
             split="valid",
-            image=np.zeros((100, 100, 3)),
-            image_channels=ImageChannels.from_str("RGB"),
+            image=Image(data=np.zeros((100, 100, 3)), format=Uint8ImageFormat(), channels=ImageChannels.from_str("RGB")),
             mask=np.zeros((3, 100, 100)),
             contours=[
                 [
                     Contour(
-                        points=[(10, 10), (20, 20), (30, 30)],
+                        points=np.array([(10, 10), (20, 20), (30, 30)]),
                         area=500,
                         w=10,
                         h=10,
@@ -118,7 +120,7 @@ class SegmentationBBoxTest(unittest.TestCase):
                         bbox_area=500,
                     ),
                     Contour(
-                        points=[(20, 20), (30, 30), (40, 40)],
+                        points=np.array([(20, 20), (30, 30), (40, 40)]),
                         area=800,
                         w=20,
                         h=20,
@@ -130,7 +132,7 @@ class SegmentationBBoxTest(unittest.TestCase):
                 ],
                 [
                     Contour(
-                        points=[(50, 50), (60, 60), (70, 70)],
+                        points=np.array([(50, 50), (60, 60), (70, 70)]),
                         area=300,
                         w=10,
                         h=10,
@@ -141,13 +143,14 @@ class SegmentationBBoxTest(unittest.TestCase):
                     ),
                 ],
             ],
+            class_names={0: "class_0", 1: "class_1", 2: "class_2"},
         )
 
         self.resolution_extractor = SegmentationBoundingBoxResolution()
         self.resolution_extractor.update(train_sample)
         self.resolution_extractor.update(valid_sample)
 
-        self.class_count = SegmentationClassesCount()
+        self.class_count = SegmentationClassFrequency()
         self.class_count.update(train_sample)
         self.class_count.update(valid_sample)
 
@@ -182,26 +185,36 @@ class SegmentationBBoxTest(unittest.TestCase):
             {"split": "valid", "class_name": "0", "bbox_area": 8},
             {"split": "valid", "class_name": "1", "bbox_area": 3},
         ]
-        for x, y in zip(feature.data.to_dict(orient="records"), expected_data):
+        data = feature.data
+        assert isinstance(data, pd.DataFrame)
+        for x, y in zip(data.to_dict(orient="records"), expected_data, strict=True):
             self.assertAlmostEqual(x["bbox_area"], y["bbox_area"], delta=0.01)
 
     def test_plot(self):
         for feature_extractor in self.feature_extractors:
             feature = feature_extractor.aggregate()
             sns = SeabornRenderer()
-            f = sns.render(feature.data, feature.plot_options)
+            f = sns.render(feature.data, feature.plot_options)  # type: ignore
+
+            if f is None:
+                raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
+
             f.show()
 
     def test_resolution_plot(self):
         feature = self.resolution_extractor.aggregate()
         sns = SeabornRenderer()
-        f = sns.render(feature.data, feature.plot_options)
+        f = sns.render(feature.data, feature.plot_options)  # type: ignore
+        if f is None:
+            raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
         f.show()
 
     def test_class_distribution_plot(self):
         feature = self.class_count.aggregate()
         sns = SeabornRenderer()
-        f = sns.render(feature.data, feature.plot_options)
+        f = sns.render(feature.data, feature.plot_options)  # type: ignore
+        if f is None:
+            raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
         f.show()
 
 

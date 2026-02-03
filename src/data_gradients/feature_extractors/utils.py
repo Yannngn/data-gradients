@@ -10,7 +10,8 @@ class MostImportantValuesSelector:
                 - 'outliers':       Returns the top k rows with the most extreme average values.
                 - 'max':            Returns the top k rows with the highest average values.
                 - 'min':            Returns the top k rows with the lowest average values.
-                - 'min_max':        Returns the (top k)/2 rows with the biggest average values, and the (top k)/2 with the smallest average values.
+                - 'min_max':        Returns the (top k)/2 rows with the biggest average values,
+                                    and the (top k)/2 with the smallest average values.
         """
         valid_modes = ("train_val_diff", "outliers", "max", "min", "min_max")
         if prioritization_mode not in valid_modes:

@@ -1,7 +1,7 @@
 from data_gradients.dataset_adapters.base_adapter import BaseDatasetAdapter
-from data_gradients.dataset_adapters.output_mapper.dataset_output_mapper import DatasetOutputMapper
 from data_gradients.dataset_adapters.config.data_config import ClassificationDataConfig
 from data_gradients.dataset_adapters.formatters.classification import ClassificationBatchFormatter
+from data_gradients.dataset_adapters.output_mapper.dataset_output_mapper import DatasetOutputMapper
 
 
 class ClassificationDatasetAdapter(BaseDatasetAdapter):

@@ -1,10 +1,14 @@
-import os
+from collections.abc import Iterator
+from pathlib import Path
+
 import numpy as np
-from typing import Tuple
+from torch.utils.data import Dataset
 from torchvision.datasets import CocoDetection
 
+from data_gradients.utils.utils import PathLike
 
-class COCOFormatSegmentationDataset:
+
+class COCOFormatSegmentationDataset(Dataset):
     """The Coco Format Segmentation Dataset supports datasets where labels and masks are stored in COCO format.
 
     #### Expected folder structure
@@ -46,7 +50,7 @@ class COCOFormatSegmentationDataset:
     ```
     """
 
-    def __init__(self, root_dir: str, images_subdir: str, annotation_file_path: str):
+    def __init__(self, root_dir: PathLike, images_subdir: PathLike, annotation_file_path: PathLike):
         """
         :param root_dir:                Where the data is stored.
         :param images_subdir:           Local path to directory that includes all the images. Path relative to `root_dir`.
@@ -54,8 +58,8 @@ class COCOFormatSegmentationDataset:
         """
 
         self.base_dataset = CocoDetection(
-            root=os.path.join(root_dir, images_subdir),
-            annFile=os.path.join(root_dir, annotation_file_path),
+            root=Path(root_dir) / images_subdir,
+            annFile=str(Path(root_dir) / annotation_file_path),  # COCO expects a string path
         )
 
         self.class_ids = self.base_dataset.coco.getCatIds()
@@ -87,11 +91,11 @@ class COCOFormatSegmentationDataset:
     def __len__(self) -> int:
         return len(self.base_dataset)
 
-    def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
+    def __getitem__(self, index: int) -> tuple[np.ndarray, np.ndarray]:
         image = self.load_image(index)
         masks = self.load_masks(index)
         return image, masks
 
-    def __iter__(self) -> Tuple[np.ndarray, np.ndarray]:
+    def __iter__(self) -> Iterator[tuple[np.ndarray, np.ndarray]]:
         for i in range(len(self)):
             yield self[i]

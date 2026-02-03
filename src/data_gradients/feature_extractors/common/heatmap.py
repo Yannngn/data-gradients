@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from typing import Any
 
 import numpy as np
 
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
-from data_gradients.utils.data_classes import SegmentationSample
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.visualize.images import combine_images_per_split_per_class
 from data_gradients.visualize.seaborn_renderer import FigureRenderer
 
 
-class BaseClassHeatmap(AbstractFeatureExtractor, ABC):
+class BaseClassHeatmap(NoSourceFeatureExtractor, ABC):
     def __init__(self, n_rows: int = 12, n_cols: int = 2, heatmap_shape: tuple[int, int] = (200, 200)):
         """
         :param n_rows:          How many rows per split.
@@ -24,11 +24,12 @@ class BaseClassHeatmap(AbstractFeatureExtractor, ABC):
         self.heatmaps_per_split: dict[str, np.ndarray] = {}  # Each heatmap should be of shape (n_class, heatmap_shape[0], heatmap_shape[1])
 
     @abstractmethod
-    def update(self, sample: SegmentationSample): ...
+    def update(self, sample: Any):  # SegmentationSample
+        ...
 
     def aggregate(self) -> Feature:
         # Select top k heatmaps by appearance
-        split_count = sum(split_heatmap.sum(axis=(1, 2)) for split_heatmap in self.heatmaps_per_split.values())
+        split_count: np.ndarray = np.sum([split_heatmap.sum(axis=(1, 2)) for split_heatmap in self.heatmaps_per_split.values()], axis=0)
         most_used_class_ids = (-split_count).argsort()[: self.n_rows * self.n_cols]
 
         # Normalize (0-1)
@@ -41,7 +42,7 @@ class BaseClassHeatmap(AbstractFeatureExtractor, ABC):
 
         fig = combine_images_per_split_per_class(images_per_split_per_class=normalized_heatmaps_per_split_per_cls, n_cols=self.n_cols)
         plot_options = FigureRenderer()
-        json = {class_name: "No Data" for class_name in normalized_heatmaps_per_split_per_cls.keys()}
+        json = dict.fromkeys(normalized_heatmaps_per_split_per_cls.keys(), "No Data")
 
         feature = Feature(
             data=fig,

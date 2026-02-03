@@ -4,7 +4,6 @@ from torchvision.transforms import Compose, ToTensor
 from data_gradients.datasets.bdd_dataset import BDDDataset
 from data_gradients.managers.segmentation_manager import SegmentationAnalysisManager
 
-
 if __name__ == "__main__":
     """
     Example script for running the Deci-Dataset-Analyzer tool.

@@ -1,14 +1,14 @@
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.feature_extractors.utils import MostImportantValuesSelector
 from data_gradients.utils.data_classes import SegmentationSample
 from data_gradients.visualize.seaborn_renderer import BarPlotOptions
 
 
 @register_feature_extractor()
-class SegmentationClassFrequency(AbstractFeatureExtractor):
+class SegmentationClassFrequency(NoSourceFeatureExtractor):
     """
     Analyzes and visualizes the distribution of class instances across dataset splits.
 
@@ -27,13 +27,14 @@ class SegmentationClassFrequency(AbstractFeatureExtractor):
                 - 'outliers':       Returns the top k rows with the most extreme average values.
                 - 'max':            Returns the top k rows with the highest average values.
                 - 'min':            Returns the top k rows with the lowest average values.
-                - 'min_max':        Returns the (top k)/2 rows with the biggest average values, and the (top k)/2 with the smallest average values.
+                - 'min_max':        Returns the (top k)/2 rows with the biggest average values,
+                                    and the (top k)/2 with the smallest average values.
         """
         self.value_extractor = MostImportantValuesSelector(topk=topk, prioritization_mode=prioritization_mode)
         self.data = []
 
     def update(self, sample: SegmentationSample):
-        for j, class_channel in enumerate(sample.contours):
+        for class_channel in sample.contours:
             for contour in class_channel:
                 class_id = contour.class_id
                 class_name = sample.class_names[class_id]

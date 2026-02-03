@@ -1,18 +1,17 @@
 import cv2
-from typing import Tuple
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import Feature
-from data_gradients.utils.data_classes import SegmentationSample
-from data_gradients.visualize.seaborn_renderer import KDEPlotOptions
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.sample_preprocessor.utils import contours
+from data_gradients.utils.data_classes import SegmentationSample
+from data_gradients.utils.segmentation import mask_to_onehot
+from data_gradients.visualize.seaborn_renderer import KDEPlotOptions
 
 
 @register_feature_extractor()
-class SegmentationComponentsErosion(AbstractFeatureExtractor):
+class SegmentationComponentsErosion(NoSourceFeatureExtractor):
     """
     Analyzes the impact of morphological operations on the segmentation mask components within a dataset, quantifying the change in
     the number of components post-erosion.
@@ -26,8 +25,6 @@ class SegmentationComponentsErosion(AbstractFeatureExtractor):
         self.data = []
 
     def update(self, sample: SegmentationSample):
-        from data_gradients.utils.segmentation import mask_to_onehot
-
         onehot_mask = mask_to_onehot(mask_categorical=sample.mask, n_classes=max(sample.class_names.keys()))
         opened_onehot_mask = self.apply_mask_opening(onehot_mask=onehot_mask, kernel_shape=self.kernel_shape)
         opened_categorical_mask = np.argmax(opened_onehot_mask, axis=-1)
@@ -63,10 +60,10 @@ class SegmentationComponentsErosion(AbstractFeatureExtractor):
             sharey=True,
         )
 
-        json = dict(
-            train=dict(df[df["split"] == "train"]["percent_change_of_n_components"].describe()),
-            val=dict(df[df["split"] == "val"]["percent_change_of_n_components"].describe()),
-        )
+        json = {
+            "train": df[df["split"] == "train"]["percent_change_of_n_components"].describe().to_dict(),
+            "val": df[df["split"] == "val"]["percent_change_of_n_components"].describe().to_dict(),
+        }
 
         feature = Feature(
             data=df,
@@ -81,10 +78,11 @@ class SegmentationComponentsErosion(AbstractFeatureExtractor):
         )
         return feature
 
-    def apply_mask_opening(self, onehot_mask: np.ndarray, kernel_shape: Tuple[int, int]) -> np.ndarray:
+    def apply_mask_opening(self, onehot_mask: np.ndarray, kernel_shape: tuple[int, int]) -> np.ndarray:
         """Opening is just another name of erosion followed by dilation.
 
-        It is useful in removing noise, as we explained above. Here we use the function, cv2.morphologyEx(). See [Official OpenCV documentation](
+        It is useful in removing noise, as we explained above. Here we use the function, cv2.morphologyEx().
+        See [Official OpenCV documentation](
         https://opencv24-python-tutorials.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_morphological_ops/py_morphological_ops.html)
 
         :param mask:            Mask to open in shape [N, H, W]

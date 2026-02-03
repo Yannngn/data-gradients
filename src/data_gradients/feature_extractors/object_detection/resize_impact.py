@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from data_gradients.common.registry.registry import register_feature_extractor
-from data_gradients.feature_extractors.abstract_feature_extractor import AbstractFeatureExtractor, Feature
+from data_gradients.feature_extractors.abstract_feature_extractor import Feature, NoSourceFeatureExtractor
 from data_gradients.utils.data_classes import DetectionSample
 from data_gradients.visualize.plot_options import HeatmapOptions
 
@@ -28,11 +28,12 @@ DEFAULT_AREA_THRESHOLDS = [1, 4, 9, 16, 64]
 
 
 @register_feature_extractor()
-class DetectionResizeImpact(AbstractFeatureExtractor):
+class DetectionResizeImpact(NoSourceFeatureExtractor):
     """
     Examines the influence of image resizing on bounding box visibility within datasets.
 
-    By assessing changes in bounding box sizes at various image dimensions, this feature quantifies the ratio of bounding boxes that would become smaller than
+    By assessing changes in bounding box sizes at various image dimensions, this feature quantifies the ratio of bounding boxes that would
+    become smaller than
     predefined size thresholds.
     This analysis is crucial for determining resizing practices that prevent the loss of objects during image preprocessing.
     """
@@ -82,7 +83,7 @@ class DetectionResizeImpact(AbstractFeatureExtractor):
         for split in splits:
             split_df = df[df["split"] == split]
 
-            rescale = {threshold: dict() for threshold in self.area_thresholds}
+            rescale = {threshold: {} for threshold in self.area_thresholds}
             for image_rescale_width, image_rescale_height in resizing_size:
                 name = f"{image_rescale_width}x{image_rescale_height}"
 

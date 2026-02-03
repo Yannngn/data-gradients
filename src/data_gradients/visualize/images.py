@@ -3,6 +3,8 @@ from itertools import zip_longest
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from PIL import Image
 
 
@@ -11,7 +13,7 @@ def stack_split_images_to_fig(
     split_figsize: tuple[float, float],
     tight_layout: bool = True,
     stack_vertically: bool = True,
-) -> plt.Figure:
+) -> Figure:
     """Stack a mapping of split_name -> split_image into a single figure. This can be done horizontally or vertically.
     :param image_per_split:      Mapping of split_name -> split_image
     :param split_figsize:        Size of each split image. Final size will be a multiple of this, either horizontally or vertically
@@ -39,15 +41,18 @@ def combine_images(images: list[np.ndarray], n_cols: int, row_figsize: tuple[flo
     """Combine a list of images into a single one using matplotlib.
     :param images:              List of images to combine, RGB
     :param n_cols:              Number of images per row
-    :param row_figsize:         Figure size of each row. The y-axis will be multiplied by number of rows to determine the overall figsize in y-dim.
+    :param row_figsize:         Figure size of each row. The y-axis will be multiplied by number of rows to
+                                determine the overall figsize in y-dim.
     :param tight_layout:        Whether to use tight layout or not
     :return:                    Combined image
     """
     n_rows = len(images) // n_cols + len(images) % n_cols
 
     fig_size = (row_figsize[0], row_figsize[1] * n_rows)
-    fig, axs = plt.subplots(n_rows, n_cols, figsize=fig_size)
+    subplots: tuple[Figure, np.ndarray] = plt.subplots(n_rows, n_cols, figsize=fig_size)
+    fig, axs = subplots
     for ax, img in zip_longest(axs.flatten(), images, fillvalue=None):
+        assert isinstance(ax, Axes)  # type hint
         ax.set_axis_off()
         if img is not None:
             ax.imshow(img)
@@ -58,7 +63,7 @@ def combine_images(images: list[np.ndarray], n_cols: int, row_figsize: tuple[flo
     return fig_to_array(fig)
 
 
-def fig_to_array(fig: plt.Figure) -> np.ndarray:
+def fig_to_array(fig: Figure) -> np.ndarray:
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=200)
     buf.seek(0)
@@ -67,7 +72,7 @@ def fig_to_array(fig: plt.Figure) -> np.ndarray:
     return np.asarray(image)
 
 
-def combine_images_per_split_per_class(images_per_split_per_class: dict[str, dict[str, np.ndarray]], n_cols: int) -> plt.Figure:
+def combine_images_per_split_per_class(images_per_split_per_class: dict[str, dict[str, np.ndarray]], n_cols: int) -> Figure:
     """For each class, combine split images. Then, combine all the resulting images into one plot.
 
     Example:
@@ -82,7 +87,8 @@ def combine_images_per_split_per_class(images_per_split_per_class: dict[str, dic
     class3:  [train | test]    class4:  [train | test]
     class5:  [train | test]    class6:  [train | test]
 
-    :param images_per_split_per_class:  Mapping of class names and splits to images. e.g. {"class1": {"train": np.ndarray, "valid": np.ndarray},...}
+    :param images_per_split_per_class:  Mapping of class names and splits to images. e.g.
+                                        {"class1": {"train": np.ndarray, "valid": np.ndarray},...}
     :param n_cols:                      Number of images per row
     :return:                            Resulting figure
     """
@@ -117,8 +123,10 @@ def combine_images_per_split_per_class(images_per_split_per_class: dict[str, dic
         class_image = fig_to_array(class_fig)
         images.append(class_image)
 
-    fig, axs = plt.subplots(n_rows, n_cols, figsize=(10, 2.5 * n_rows))
+    subplots: tuple[Figure, np.ndarray] = plt.subplots(n_rows, n_cols, figsize=(10, 2.5 * n_rows))
+    fig, axs = subplots
     for ax, img in zip_longest(axs.flatten(), images, fillvalue=None):
+        assert isinstance(ax, Axes)  # type hint
         ax.axis("off")
         if img is not None:
             ax.imshow(img)

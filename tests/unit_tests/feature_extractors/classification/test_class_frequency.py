@@ -2,11 +2,11 @@ import unittest
 
 import numpy as np
 
+from data_gradients.dataset_adapters.formatters.utils import Uint8ImageFormat
 from data_gradients.feature_extractors.classification.class_frequency import ClassificationClassFrequency
 from data_gradients.utils.data_classes.data_samples import ClassificationSample, Image
-from data_gradients.visualize.seaborn_renderer import SeabornRenderer
 from data_gradients.utils.data_classes.image_channels import ImageChannels
-from data_gradients.dataset_adapters.formatters.utils import Uint8ImageFormat
+from data_gradients.visualize.seaborn_renderer import SeabornRenderer
 
 
 class ClassificationClassFrequencyTest(unittest.TestCase):
@@ -66,7 +66,11 @@ class ClassificationClassFrequencyTest(unittest.TestCase):
     def test_plot(self):
         feature = self.class_distribution.aggregate()
         sns = SeabornRenderer()
-        f = sns.render(feature.data, feature.plot_options)
+        f = sns.render(feature.data, feature.plot_options)  # type: ignore
+
+        if f is None:
+            raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
+
         f.savefig(fname=self.class_distribution.__class__.__name__ + ".png")
         f.show()
 

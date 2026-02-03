@@ -1,13 +1,13 @@
-from typing import Optional, List, Tuple
-
 import torch
 from torch import Tensor
 
-from data_gradients.dataset_adapters.formatters.base import BatchFormatter
-from data_gradients.dataset_adapters.utils import check_all_integers
 from data_gradients.dataset_adapters.config.data_config import SegmentationDataConfig
+from data_gradients.dataset_adapters.formatters.base import BatchFormatter
 from data_gradients.dataset_adapters.formatters.utils import DatasetFormatError
+from data_gradients.dataset_adapters.utils import check_all_integers
 from data_gradients.utils.data_classes.data_samples import Image
+
+# TODO: move config is None assertions to config class!
 
 
 class SegmentationBatchFormatter(BatchFormatter):
@@ -19,13 +19,13 @@ class SegmentationBatchFormatter(BatchFormatter):
         self,
         data_config: SegmentationDataConfig,
         threshold_value: float,
-        ignore_labels: Optional[List[int]] = None,
+        ignore_labels: list[int] | None = None,
     ):
         """
         :param threshold_value:     Threshold
         :param ignore_labels:       Numbers that we should avoid from analyzing as valid classes, such as background
         """
-        self.class_ids_to_ignore: Optional[List[str]] = None  # This will be initialized in `format()`
+        self.class_ids_to_ignore: list[int] | None = None  # This will be initialized in `format()`
         self.ignore_labels = ignore_labels or []
 
         self.threshold_value = threshold_value
@@ -33,7 +33,7 @@ class SegmentationBatchFormatter(BatchFormatter):
         self.data_config = data_config
         super().__init__(data_config=data_config)
 
-    def format(self, images: Tensor, labels: Tensor) -> Tuple[List[Image], Tensor]:
+    def format(self, images: Tensor, labels: Tensor) -> tuple[list[Image], Tensor]:
         """Validate batch images and labels format, and ensure that they are in the relevant format for segmentation.
 
         :param images: Batch of images, in (BS, ...) format, or single sample
@@ -46,12 +46,18 @@ class SegmentationBatchFormatter(BatchFormatter):
         if self.class_ids_to_ignore is None:
             # This may trigger questions to the user, so we prefer to set it inside `former()` and not `__init__`
             # to avoid asking questions even before the analysis starts.
-            classes_to_ignore = set(self.data_config.get_class_names().values()) - set(self.data_config.get_class_names_to_use())
+            class_names = self.data_config.get_class_names()
+            class_names_to_use = self.data_config.get_class_names_to_use()
+
+            if class_names is None or class_names_to_use is None:
+                raise ValueError("Class names and class names to use must be defined in the data config.")
+
+            classes_to_ignore = set(class_names.values()) - set(class_names_to_use)
             self.class_ids_to_ignore = []
-            for class_id, class_name in self.data_config.get_class_names().items():
+            for class_id, class_name in class_names.items():
                 for class_name_to_ignore in classes_to_ignore:
                     if class_name == class_name_to_ignore:
-                        self.class_ids_to_ignore.append(class_name)
+                        self.class_ids_to_ignore.append(class_id)
 
         if not self.check_is_batch(images=images, labels=labels):
             images = images.unsqueeze(0)
@@ -77,10 +83,15 @@ class SegmentationBatchFormatter(BatchFormatter):
 
     def _format_labels(self, labels: Tensor) -> Tensor:
         labels = labels.squeeze(1).squeeze(-1)  # If (BS, 1, H, W) or (BS, H, W, 1) -> (BS, H, W)
+        n_classes = self.data_config.get_n_classes()
+
+        if n_classes is None:
+            raise ValueError("Number of classes could not be inferred from the data_config.")
+
         if labels.ndim == 3:
-            labels = ensure_hard_labels(labels, n_classes=self.data_config.get_n_classes(), threshold_value=self.threshold_value)
+            labels = ensure_hard_labels(labels, n_classes=n_classes, threshold_value=self.threshold_value)
         elif labels.ndim == 4:
-            labels = convert_to_categorical(labels, n_classes=self.data_config.get_n_classes())
+            labels = convert_to_categorical(labels, n_classes=n_classes)
         else:
             raise DatasetFormatError(f"Labels should be either 3D (categorical) or 4D (onehot), but got {labels.ndim}D")
         return labels
@@ -104,4 +115,5 @@ def convert_to_categorical(labels: Tensor, n_classes: int) -> Tensor:
 
 
 def binary_mask_above_threshold(labels: Tensor, threshold_value: float) -> Tensor:
+    return torch.where(labels > threshold_value, torch.ones_like(labels), torch.zeros_like(labels))
     return torch.where(labels > threshold_value, torch.ones_like(labels), torch.zeros_like(labels))

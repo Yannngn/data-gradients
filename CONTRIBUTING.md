@@ -2,7 +2,7 @@
 
 Here is a simple guideline to get you started with your first contribution.
 1. Set up your environment to follow our [formatting guidelines](#code-formatting) and to use [signed-commits](#signed-commits).
-2. Use [issues](https://github.com/Deci-AI/data-gradients/issues) to discuss the suggested changes. Create an issue describing changes if necessary and add labels to ease orientation.
+2. Use [issues]( https://github.com/Yannngn/data-gradients/issues) to discuss the suggested changes. Create an issue describing changes if necessary and add labels to ease orientation.
 3. [Fork data-gradients](https://help.github.com/articles/fork-a-repo/) so you can make local changes and test them.
 4. Create a new branch for the issue. The branch naming convention is enforced by the CI/CD so please make sure you are using `feature/DG-***` or `hotfix/DG-***` format otherwise it will fail.
 5. Implement your changes along with relevant tests for the issue. Please make sure you are covering unit-tests where required.
@@ -28,9 +28,9 @@ def python_function(first_argument: int, second_argument: int) -> str:
 
 ## Code Formatting
 
-We enforce [black](https://github.com/psf/black) code formatting in addition to existing [flake8](https://flake8.pycqa.org/en/latest/user/index.html) checks. 
+We enforce [black](https://github.com/psf/black) code formatting in addition to existing [flake8](https://flake8.pycqa.org/en/latest/user/index.html) checks.
 
-To ensure everyone uses same code style, a project-wise [configuration file](https://github.com/Deci-AI/data-gradients/blob/master/pyproject.toml) has been added to DG repo. It ensures all formatting will be exactly the same regardless of OS, python version or the place where code formatting check is happening. 
+To ensure everyone uses same code style, a project-wise [configuration file]( https://github.com/Yannngn/data-gradients/blob/master/pyproject.toml) has been added to DG repo. It ensures all formatting will be exactly the same regardless of OS, python version or the place where code formatting check is happening.
 
 ### Installation
 
@@ -48,12 +48,12 @@ $ pip install pre-commit
 $ pre-commit install
 ```
 
-The command should complete without errors. Once done, all your upcoming commits will be checked via black & flake8. 
+The command should complete without errors. Once done, all your upcoming commits will be checked via black & flake8.
 
 ### Usage
 
 Just run ```$ black .``` from the DG root. It will reformat the whole repo.
-For flake8: ```$ flake8 --statistics --config scripts/flake8-config setup.py .``` 
+For flake8: ```$ flake8 --statistics --config scripts/flake8-config setup.py .```
 
 
 ## Signed Commits
@@ -66,20 +66,20 @@ You can find more information [here](https://withblue.ink/2020/05/17/how-and-why
 
 ### Add GPG key to GitHub
 
-1. [Generate a new GPG key](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key) 
+1. [Generate a new GPG key](https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key)
 2. Copy the GPG key by running the command on step 12 from the link above
-    
+
 ```bash
 $ gpg --armor --export 3AA5C34371567BD2
 ```
-    
+
 3. [Add the new GPG key to your GitHub account](https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-new-gpg-key-to-your-github-account)
 
 ### Use GPG key
 
 - [From Pycharm](https://www.jetbrains.com/help/pycharm/set-up-GPG-commit-signing.html#enable-commit-signing)
 - [From Terminal](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits), but first also do:
-    
+
 ```bash
 $ git config --global user.signingkey 3AA5C34371567BD2
 $ git config --global gpg.program /usr/local/bin/gpg

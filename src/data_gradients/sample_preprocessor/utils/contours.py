@@ -70,11 +70,11 @@ def get_valid_contours(contours: tuple, class_id: int) -> list:
     return valid_contours
 
 
-def get_num_contours(contours: list[np.array]) -> int:
+def get_num_contours(contours: list[np.ndarray]) -> int:
     return len(contours)
 
 
-def get_contour_area(contour: np.array) -> float:
+def get_contour_area(contour: np.ndarray) -> float:
     """
     Get area of contours [pixels]
     :param contour: List of points
@@ -84,7 +84,7 @@ def get_contour_area(contour: np.array) -> float:
     return float(area)
 
 
-def get_contour_center_of_mass(contour: np.array) -> tuple[int, int]:
+def get_contour_center_of_mass(contour: np.ndarray) -> tuple[int, int]:
     """
     Find contours center of mass by its moments
     :param contour: List of points
@@ -98,21 +98,21 @@ def get_contour_center_of_mass(contour: np.array) -> tuple[int, int]:
     return cx, cy
 
 
-def get_contour_perimeter(contour: np.array) -> float:
+def get_contour_perimeter(contour: np.ndarray) -> float:
     perimeter = cv2.arcLength(contour, closed=True)
     return perimeter
 
 
-def get_contour_is_convex(contour: np.array) -> bool:
+def get_contour_is_convex(contour: np.ndarray) -> bool:
     return cv2.isContourConvex(contour)
 
 
-def get_convex_hull(contour: Contour) -> np.array:
-    convex_hull = cv2.convexHull(contour.points, hull=False)
+def get_convex_hull(contour: Contour) -> np.ndarray:
+    convex_hull = cv2.convexHull(contour.points, returnPoints=True)
     return convex_hull
 
 
-def get_rotated_bounding_rect(contour: np.array) -> np.array:
+def get_rotated_bounding_rect(contour: np.ndarray) -> np.ndarray:
     """
     Get the minimum area bounding rectangle of the contour given
     :param contour: List of points
@@ -120,22 +120,21 @@ def get_rotated_bounding_rect(contour: np.array) -> np.array:
     """
     rect = cv2.minAreaRect(contour)  # rect = ((cx, cy), (w, h), rotated angle)
     # return rect_to_box(rect)
-    return rect
+    return rect  # type: ignore
 
 
 def rect_to_box(rect):
     box = cv2.boxPoints(rect)
-    box = np.int0(box)
-    return box
+    return np.array(box, dtype=np.int32)
 
 
-def get_aspect_ratio_of_bounding_rect(contour: np.array) -> float:
+def get_aspect_ratio_of_bounding_rect(contour: np.ndarray) -> float:
     rect = cv2.minAreaRect(contour)  # rect = ((cx, cy), (w, h), rotated angle)
     return rect[1][0] / rect[1][1]
 
 
-def get_extreme_points(contour: np.array) -> tuple[dict, int, int]:
-    extreme_points = dict()
+def get_extreme_points(contour: np.ndarray) -> tuple[dict, int, int]:
+    extreme_points = {}
     extreme_points["leftmost"] = tuple(contour[contour[:, :, 0].argmin()][0])
     extreme_points["rightmost"] = tuple(contour[contour[:, :, 0].argmax()][0])
     extreme_points["topmost"] = tuple(contour[contour[:, :, 1].argmin()][0])

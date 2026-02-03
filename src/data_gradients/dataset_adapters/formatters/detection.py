@@ -16,7 +16,10 @@ class UnsupportedDetectionBatchFormatError(DatasetFormatError):
         grouped_batch_format = "(Batch_size x padding_size x 5) with 5: (class_id + 4 bbox coordinates))"
         flat_batch_format = "(N, 6) with 6: (image_id + class_id + 4 bbox coordinates)"
         super().__init__(
-            f"Supported format for detection is not supported. Supported formats are:\n- {grouped_batch_format}\n- {flat_batch_format}\n Got: {batch_format}"
+            "Supported format for detection is not supported. Supported formats are:\n"
+            + f"- {grouped_batch_format}\n"
+            + f"- {flat_batch_format}\n"
+            + f"Got: {batch_format}"
         )
 
 
@@ -26,30 +29,40 @@ class DetectionBatchFormatter(BatchFormatter):
     def __init__(self, data_config: DetectionDataConfig):
         self.data_config = data_config
 
-        self.class_ids_to_use: list[str] | None = None  # This will be initialized in `format()`
+        self.class_ids_to_use: list[int] | None = None  # This will be initialized in `format()`
 
         self.xyxy_converter = None
         self.label_first = None
         super().__init__(data_config=data_config)
 
-    def format(self, images: Tensor, labels: Tensor) -> tuple[list[Image], list[Tensor]]:
+    def format(self, images: Tensor, labels: Tensor | list[Tensor]) -> tuple[list[Image], list[Tensor] | Tensor]:
         """Validate batch images and labels format, and ensure that they are in the relevant format for detection.
 
         :param images: Batch of images, in (BS, ...) format
         :param labels: Batch of labels, in (BS, N, 5) format
         :return:
             - images: List of images
-            - labels: List of bounding boxes, each of shape (N_i, 5 [label_xyxy]) with N_i being the number of bounding boxes with class_id in class_ids
+            - labels: List of bounding boxes, each of shape (N_i, 5 [label_xyxy])
+                with N_i being the number of bounding boxes with class_id in class_ids
         """
+        # If labels is a list of tensors, stack them into a single tensor
+        if isinstance(labels, list):
+            labels = torch.stack(labels, dim=0)
 
         if self.class_ids_to_use is None:
             # This may trigger questions to the user, so we prefer to set it inside `former()` and not `__init__`
             # to avoid asking questions even before the analysis starts.
-            classes_to_use = set(self.data_config.get_class_names_to_use())
+            class_names_list = self.data_config.get_class_names_to_use()
+            class_names = self.data_config.get_class_names()
+
+            if class_names_list is None or class_names is None:
+                raise ValueError("Class names and class names to use must be defined in the data config.")
+
+            classes_to_use = set(class_names_list)
             self.class_ids_to_use = []
-            for class_id, class_name in self.data_config.get_class_names().items():
+            for class_id, class_name in class_names.items():
                 if class_name in classes_to_use:
-                    self.class_ids_to_use.append(class_id)
+                    self.class_ids_to_use.append(int(class_id))
 
         if labels.numel() == 0:
             # First thing is to make sure that, if we have empty labels, they are in a correct format
@@ -82,9 +95,14 @@ class DetectionBatchFormatter(BatchFormatter):
                 self.label_first = self.data_config.get_is_label_first(hint=targets_sample_str)
                 self.xyxy_converter = self.data_config.get_xyxy_converter(hint=targets_sample_str)
 
+                if self.xyxy_converter is None:
+                    raise ValueError("Could not infer xyxy_converter function from the data_config.")
+
+            h, w = int(images.shape[-2]), int(images.shape[-1])
+
             labels = self.convert_to_label_xyxy(
                 annotated_bboxes=labels,
-                image_shape=images.shape[-2:],
+                image_shape=(h, w),
                 xyxy_converter=self.xyxy_converter,
                 label_first=self.label_first,
             )
@@ -200,8 +218,8 @@ class DetectionBatchFormatter(BatchFormatter):
         return result_bboxes  # List[[?, 5], [?, 5], ...]
 
     @staticmethod
-    def group_detection_batch(flat_batch: torch.Tensor, batch_size: int) -> torch.Tensor:
-        """Convert a flat batch of detections (N, 6) into a grouped batch of detections (B, P, 4)
+    def group_detection_batch(flat_batch: torch.Tensor, batch_size: int | None = None) -> torch.Tensor:
+        """Convert a flat batch of detections (N, 6) into a grouped batch of detections (B, P, 5)
 
         :param flat_batch: Flat batch of detections (N, 6) with 6: (image_id + class_id + 4 bbox coordinates)
         :return: Grouped batch of detections (B, P, 5) with:
@@ -209,15 +227,27 @@ class DetectionBatchFormatter(BatchFormatter):
                     P: Padding size
                     5: (class_id + 4 bbox coordinates)
         """
-        batch_targets = [[] for _ in range(batch_size)]
+        if flat_batch.numel() == 0:
+            hint_padding = batch_size or 0
+            return torch.zeros((0, hint_padding, 5))
+
+        # Determine how many distinct images are referenced by the flat batch
+        num_images = int(flat_batch[:, 0].max().item()) + 1
+
+        batch_targets = [[] for _ in range(num_images)]
 
         for target in flat_batch:
-            image_id, target = target[0].item(), target[1:]
-            batch_targets[int(image_id)].append(target)
+            image_id, target = int(target[0].item()), target[1:]
+            batch_targets[image_id].append(target)
 
-        max_n_labels_per_image = max(len(labels) for labels in batch_targets)
+        observed_max_labels = max((len(labels) for labels in batch_targets), default=0)
 
-        output_array = torch.zeros(batch_size, max_n_labels_per_image, 5)
+        # Use the larger of the observed max labels per image and the provided batch_size hint (if any)
+        padding = observed_max_labels
+        if batch_size is not None and batch_size > padding:
+            padding = batch_size
+
+        output_array = torch.zeros(num_images, padding, 5)
 
         for batch_index, targets in enumerate(batch_targets):
             for target_index, target in enumerate(targets):

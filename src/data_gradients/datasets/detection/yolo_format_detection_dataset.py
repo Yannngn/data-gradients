@@ -1,9 +1,12 @@
-import numpy as np
 import logging
-from typing import Sequence, Optional, List, Callable
+from collections.abc import Callable, Sequence
+from pathlib import Path
+
+import numpy as np
 
 from data_gradients.datasets.base_dataset import BaseImageLabelDirectoryDataset
 from data_gradients.datasets.FolderProcessor import DEFAULT_IMG_EXTENSIONS
+from data_gradients.datasets.utils import PathLike
 
 logger = logging.getLogger(__name__)
 
@@ -89,20 +92,23 @@ class YoloFormatDetectionDataset(BaseImageLabelDirectoryDataset):
 
     def __init__(
         self,
-        root_dir: str,
-        images_dir: str,
-        labels_dir: str,
+        root_dir: PathLike,
+        images_dir: PathLike,
+        labels_dir: PathLike,
         ignore_invalid_labels: bool = True,
         verbose: bool = False,
         image_extensions: Sequence[str] = DEFAULT_IMG_EXTENSIONS,
         label_extensions: Sequence[str] = ("txt",),
-        single_line_parser: Optional[Callable[[str], Sequence[float]]] = None,
+        single_line_parser: Callable[[str], Sequence[float]] | None = None,
     ):
         """
         :param root_dir:                Where the data is stored.
-        :param images_dir:              Local path to directory that includes all the images. Path relative to `root_dir`. Can be the same as `labels_dir`.
-        :param labels_dir:              Local path to directory that includes all the labels. Path relative to `root_dir`. Can be the same as `images_dir`.
-        :param ignore_invalid_labels:   Whether to ignore labels that fail to be parsed. If True ignores and logs a warning, otherwise raise an error.
+        :param images_dir:              Local path to directory that includes all the images. Path relative to `root_dir`.
+                                        Can be the same as `labels_dir`.
+        :param labels_dir:              Local path to directory that includes all the labels. Path relative to `root_dir`.
+                                        Can be the same as `images_dir`.
+        :param ignore_invalid_labels:   Whether to ignore labels that fail to be parsed. If True ignores and logs a warning,
+                                        otherwise raise an error.
         :param verbose:                 Whether to show extra information during loading.
         :param image_extensions:        List of image file extensions to load from.
         :param label_extensions:        List of label file extensions to load from.
@@ -123,31 +129,38 @@ class YoloFormatDetectionDataset(BaseImageLabelDirectoryDataset):
         self.verbose = verbose
         self.single_line_parser = single_line_parser or parse_yolo_format_line
 
-    def load_labels(self, path: str) -> np.ndarray:
+    def load_labels(self, path: PathLike) -> np.ndarray:
         """Parse a single label file according to `self.single_line_parser`.
         :param path: Local path to the label file.
         :return:     Numpy array representing the labels.
         """
 
-        with open(path, "r", encoding="utf-8") as file:
+        with Path(path).open(encoding="utf-8") as file:
             lines = file.readlines()
 
         labels = []
         for line in filter(lambda x: x != "\n", lines):
             try:
                 label = self.single_line_parser(line)
-                if label is not None:
-                    labels.append(label)
+
+                if label is None:
+                    continue
+
+                labels.append(label)
+
             except Exception as e:
                 error = f"invalid label: {line} from {path}. "
+
                 if self.ignore_invalid_labels:
                     logger.warning(f"Ignoring {error}. Exception raise: {e}")
-                else:
-                    raise RuntimeError(error.capitalize()) from e
+                    continue
+
+                raise RuntimeError(error.capitalize()) from e
+
         return np.array(labels) if labels else np.zeros((0, 5))
 
 
-def parse_yolo_format_line(line: str) -> Optional[List[float]]:
+def parse_yolo_format_line(line: str) -> list[float] | None:
     """Parses a line in the standard Yolo format, i.e. `<class_id> <cx> <cy> <w> <h>`. Does not support any variation.
     :param line:    Line representing a bounding box instance. Should be formatted in Yolo format: `<class_id> <cx> <cy> <w> <h>`.
     :return:        List representing the bounding box labels (class_id, cx, cy, w, h).
