@@ -225,7 +225,7 @@ class AnalysisManagerAbstract:
                 if f is not None:
                     image_name = feature_extractor.__class__.__name__ + ".png"
                     image_path = Path(self.summary_writer.archive_dir) / image_name
-                    f.savefig(str(image_path), dpi=200)
+                    f.savefig(image_path, dpi=200)
                     images_created.append(image_path)
 
                 self.summary_writer.add_feature_stats(title=feature_name, stats=feature_json)

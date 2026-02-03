@@ -76,7 +76,7 @@ class BoundingBoxesIoUTest(unittest.TestCase):
         if f is None:
             raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
 
-        f.savefig("test_plot.png")
+        f.savefig(self._testMethodName + ".png")
         f.show()
 
     def test_plot_80_classes(self):
@@ -93,7 +93,7 @@ class BoundingBoxesIoUTest(unittest.TestCase):
         if f is None:
             raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
 
-        f.savefig("test_plot_80_classes.png")
+        f.savefig(self._testMethodName + ".png")
         f.show()
 
     def test_plot_16_classes(self):
@@ -110,7 +110,7 @@ class BoundingBoxesIoUTest(unittest.TestCase):
         if f is None:
             raise (RuntimeError(f"Failed to render plot on {self._testMethodName}."))
 
-        f.savefig("test_plot_16_classes.png")
+        f.savefig(self._testMethodName + ".png")
         f.show()
 
 
